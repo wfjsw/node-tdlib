@@ -5,12 +5,12 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "install": "cmake-js compile"
+    "install": "ncmake update && ncmake rebuild"
   },
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
-    "cmake-js": "^3.7.3",
-    "nbind": "^0.3.15"
+    "nbind": "^0.3.15",
+    "node-cmake": "^2.5.1"
   }
 }
