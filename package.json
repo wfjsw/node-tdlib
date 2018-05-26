@@ -1,0 +1,16 @@
+{
+  "name": "tdlib",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install": "cmake-js compile"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "cmake-js": "^3.7.3",
+    "nbind": "^0.3.15"
+  }
+}

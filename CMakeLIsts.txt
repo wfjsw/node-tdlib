@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.1 FATAL_ERROR)
+
+# g++ use too much memory so we will just use clang
+set(CMAKE_C_COMPILER clang)
+set(CMAKE_CXX_COMPILER clang++)
+
+# native optimization
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -O3")
+
+project(NodeTdlib VERSION 1.0 LANGUAGES CXX)
+
+include_directories(node_modules/nbind/include)
+include_directories(${CMAKE_JS_INC})
+
+file(GLOB NBIND_SOURCE_FILES node_modules/nbind/src/*.cc node_modules/nbind/src/v8/*.cc)
+add_library(nbind SHARED ${NBIND_SOURCE_FILES} "td.cpp")
+set_property(TARGET nbind PROPERTY CXX_STANDARD 11)
+set_target_properties(nbind PROPERTIES PREFIX "" SUFFIX ".node")
+target_link_libraries(nbind ${CMAKE_JS_LIB})
+target_link_libraries(nbind Td::TdJsonStatic)
+
+add_subdirectory(td)
