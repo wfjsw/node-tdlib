@@ -1,5 +1,4 @@
-const nbind = require('nbind')
-const lib = require('./tdlib.node') //nbind.init().lib
+const lib = require('bindings')('./tdlib.node') //nbind.init().lib
 const EventEmitter = require('events')
 const path = require('path')
 const os = require('os')
