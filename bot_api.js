@@ -1,6 +1,6 @@
 // https://core.telegram.org/bots/api
 
-let lib = require('./td_client_actor') 
+let lib = require('./td_client_actor')
 let _util = require('./util')
 
 lib.td_set_log_verbosity_level(2)
@@ -14,8 +14,10 @@ class Bot extends lib.TdClientActor {
             api_hash,
             identifier,
             use_test_dc,
-            use_message_database: true,
+            use_message_database: false,
             use_secret_chats: false,
+            use_chat_info_database: false,
+            use_file_database: false
         })
         this.ready = false
         this.on('updateAuthorizationState', (update) => {
@@ -43,6 +45,10 @@ class Bot extends lib.TdClientActor {
     }
     async sendMessage(chat_id, text, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
+        if (isNaN(chat_id))
+            chat_id = (await this.run('searchPublicChat', {
+                username: chat_id.match(/^[@]{0,1}([a-zA-Z0-9_]+)$/)[0]
+            })).id
         let opt = {
             chat_id,
             reply_to_message_id: options.reply_to_message_id || 0,
@@ -73,9 +79,53 @@ class Bot extends lib.TdClientActor {
                 }
             })
         } else {
-            opt.input_message_content.text = { text }
+            opt.input_message_content.text = {
+                text
+            }
         }
+        await this._initChatIfNeeded(chat_id)
         return this.run('sendMessage', opt)
+    }
+
+    async resolveUsername(username) {
+        return this.run('searchPublicChat', {
+            username: username.match(/^[@]{0,1}([a-zA-Z0-9_]+)$/)[0]
+        })
+    }
+
+    async _initChatIfNeeded(chat_id) {
+        try {
+            await this.run('getChat', {
+                chat_id
+            })
+        } catch (e) {
+            if (chat_id < -Math.pow(10, 12)) {
+                await this.run('getSupergroup', {
+                    supergroup_id: Math.abs(chat_id) - Math.pow(10, 12)
+                })
+                await this.run('createSupergroupChat', {
+                    supergroup_id: Math.abs(chat_id) - Math.pow(10, 12),
+                    force: true
+                })
+            } else if (chat_id < 0) {
+                await this.run('getBasicGroup', {
+                    basic_group_id: Math.abs(chat_id)
+                })
+                await this.run('createBasicGroupChat', {
+                    basic_group_id: Math.abs(chat_id),
+                    force: true
+                })
+            } else {
+                await this.run('getUser', {
+                    user_id: chat_id
+                })
+                await this.run('createPrivateChat', {
+                    user_id: chat_id,
+                    force: true
+                })
+            }
+        }
+        return
     }
 }
 

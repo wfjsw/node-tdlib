@@ -57,8 +57,10 @@ class TdClientActor extends EventEmitter {
             let req = params
             req['@type'] = method
             req['@extra'] = util.generateRpcReqId()
-            this.once(req['@extra'], rs)
-            console.log(JSON.stringify(req))
+            this.once(req['@extra'], (res) => {
+                if (res['@type'] == 'error') return rj(res)
+                rs(res)
+            })
             lib.td_client_send(this._instance_id, JSON.stringify(req))
         })
     }
