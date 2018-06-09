@@ -2,9 +2,11 @@
 
 ## Install
 
-As TDLib itself can take a long time to compile, I suggest you use `npm link` instead of `npm install`.
+As TDLib itself can take a long time to compile (after optimization), I suggest you use `npm link` instead of `npm install`.
 
-Dependencies: clang, cmake
+Dependencies: clang, cmake, node >= 10.0.0
+
+Optional Dependencies: ccache (can speed up compilation for about 10x)
 
 ## TdClient Interface
 
