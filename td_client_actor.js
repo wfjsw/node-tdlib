@@ -1,4 +1,4 @@
-const lib = require('bindings')('./tdlib.node') //nbind.init().lib
+const lib = require('bindings')('./tdlib.node')
 const EventEmitter = require('events')
 const path = require('path')
 const os = require('os')
@@ -31,13 +31,19 @@ class TdClientActor extends EventEmitter {
         this._tdlib_param = tdlib_param
         this._encryption_key = 'database_encryption_key' in options ? options.database_encryption_key : 'password'
         this.on('updateAuthorizationState', (update) => {
-            if (update.authorization_state['@type'] == 'authorizationStateWaitTdlibParameters') {
-                return this.run('setTdlibParameters', {parameters: tdlib_param})
-            }
-            if (update.authorization_state['@type'] == 'authorizationStateWaitEncryptionKey') {
-                //if (!update.authorization_state['is_encrypted']){
-                    return this.run('checkDatabaseEncryptionKey', {encryption_key: this._encryption_key})
-                //}
+            switch (update.authorization_state['@type']) {
+                case 'authorizationStateWaitTdlibParameters':
+                    return this.run('setTdlibParameters', {
+                        parameters: tdlib_param
+                    })
+                case 'authorizationStateWaitEncryptionKey':
+                    return this.run('checkDatabaseEncryptionKey', {
+                        encryption_key: this._encryption_key
+                    })
+                case 'authorizationStateReady':
+                    return this.emit('ready')
+                case 'authorizationStateClosed':
+                    return this.emit('closed')
             }
         })
         this._instance_id = lib.td_client_create()
@@ -58,8 +64,13 @@ class TdClientActor extends EventEmitter {
     }
 
     destroy() {
-        this._closed = true
-        setImmediate(lib.td_client_destroy, this._instance_id)
+        return new Promise((rs, rj) => {
+            if (this._closed) rj(new Error('Already closed.'))
+            this._closed = true
+            this.once('closed', rs)
+            setImmediate(lib.td_client_destroy, this._instance_id)
+        })
+        
     }
     
     _pollupdates(timeout = 0, is_recursive = false) {
