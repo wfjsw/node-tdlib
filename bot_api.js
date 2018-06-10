@@ -28,27 +28,26 @@ class Bot extends lib.TdClientActor {
                     })
             }
         })
+        this.on('updateMessageSendSucceeded', (update) => {
+            this.emit(`_msgSent:${update.old_message_id}`, update)
+        })
+        this.on('updateMessageSendFailed', (update) => {
+            this.emit(`_msgFail:${update.old_message_id}`, update)
+        })
         this.once('ready', () => this.ready = true)
     }
+
     async getMe() {
         if (!this.ready) throw new Error('Not ready.')
         let me = await this.run('getMe', {})
-        return {
-            id: me.id,
-            first_name: me.first_name,
-            last_name: me.last_name,
-            username: me.last_name,
-            is_verified: me.is_verified,
-            is_bot: me.type['@type'] == 'userTypeBot',
-            type: me.type
-        }
+        let me_full = await this.run('getUserFullInfo', {user_id: me.id})
+        return _util.buildBotApiUser(me, me_full)
     }
+
     async sendMessage(chat_id, text, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
-        if (isNaN(chat_id))
-            chat_id = (await this.run('searchPublicChat', {
-                username: chat_id.match(/^[@]{0,1}([a-zA-Z0-9_]+)$/)[0]
-            })).id
+        let self = this
+        chat_id = await this._checkChatId(chat_id)
         let opt = {
             chat_id,
             reply_to_message_id: options.reply_to_message_id || 0,
@@ -62,9 +61,75 @@ class Bot extends lib.TdClientActor {
             '@type': 'inputMessageText',
             disable_web_page_preview: !!options.disable_web_page_preview
         }
-        if (options.parse_mode) {
+        opt.input_message_content.text = await self._generateFormattedText(text, options.parse_mode)
+        await self._initChatIfNeeded(chat_id)
+        let old_msg = await self.run('sendMessage', opt)
+        return new Promise(async (rs, rj) => {
+            self.once(`_msgSent:${old_msg.id}`, async (update) => {
+                let from_user = await self.run('getUser', { user_id: update.message.sender_user_id })
+                let chat = await self.run('getChat', {chat_id: update.message.chat_id})
+                rs({
+                    message_id: _util.get_api_message_id(update.message.id),
+                    from: {
+
+                    },
+                    chat: {
+
+                    },
+                    date: update.message.date,
+
+                })
+            })
+            this.once(`_msgFail:${old_msg.id}`, async (update) => {
+
+            })
+        })
+    }
+
+    async forwardMessage(chat_id, from_chat_id, message_ids, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        if (!Array.isArray(message_ids)) message_ids = [message_ids]
+        chat_id = await this._checkChatId(chat_id)
+        from_chat_id = await this._checkChatId(from_chat_id)
+        message_ids = message_ids.map((id) => _util.get_tdlib_message_id(id))
+        let opt = {
+            chat_id,
+            from_chat_id,
+            disable_notification: !!options.disable_notification,
+            from_background: true
+        }
+        await this._initChatIfNeeded(chat_id)
+        await this._initChatIfNeeded(from_chat_id)
+        return this.run('forwardMessages', opt)
+    }
+
+    async sendPhoto(chat_id, photo, options = {}, file_options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+
+
+    }
+
+    async resolveUsername(username) {
+        if (!this.ready) throw new Error('Not ready.')
+        return this.run('searchPublicChat', {
+            username: username.match(/^[@]{0,1}([a-zA-Z0-9_]+)$/)[0]
+        })
+    }
+
+    async getUser(user_id) {
+        let _id = await this._checkChatId(user_id)
+        if (_id <= 0) throw new Error('Not a user.')
+        let user = await this.run('getUser', { user_id: _id })
+        let userfull = await this.run('getUserFullInfo', { user_id: _id })
+        return _util.buildBotApiUser(user, userfull)
+    }
+
+    // Helpers
+
+    async _generateFormattedText(text, parse_mode) {
+        if (parse_mode) {
             let parser
-            switch (options.parse_mode) {
+            switch (parse_mode) {
                 case "Markdown":
                     parser = 'textParseModeMarkdown'
                     break
@@ -72,28 +137,36 @@ class Bot extends lib.TdClientActor {
                     parser = 'textParseModeHTML'
                     break
             }
-            opt.input_message_content.text = await this.run('parseTextEntities', {
-                text,
-                parse_mode: {
-                    '@type': parser
+            if (parser) {
+                return this.run('parseTextEntities', {
+                    text,
+                    parse_mode: {
+                        '@type': parser
+                    }
+                })
+            } else {
+                return {
+                    text
                 }
-            })
+            }
         } else {
-            opt.input_message_content.text = {
+            return {
                 text
             }
         }
-        await this._initChatIfNeeded(chat_id)
-        return this.run('sendMessage', opt)
     }
 
-    async resolveUsername(username) {
-        return this.run('searchPublicChat', {
-            username: username.match(/^[@]{0,1}([a-zA-Z0-9_]+)$/)[0]
-        })
+    async _checkChatId(chat_id) {
+        if (isNaN(chat_id))
+            return (await this.run('searchPublicChat', {
+                username: chat_id.match(/^[@]{0,1}([a-zA-Z0-9_]+)$/)[0]
+            })).id
+        else
+            return chat_id
     }
 
     async _initChatIfNeeded(chat_id) {
+        // See https://github.com/tdlib/td/issues/263
         try {
             await this.run('getChat', {
                 chat_id
