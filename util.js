@@ -1,5 +1,17 @@
 const crypto = require('crypto')
 
+/*
+const entities_mirror_table = new Map([
+    ['textEntityTypeBold', 'bold'],
+    ['textEntityTypeBotCommand', 'bot_command'],
+    ['textEntityTypeCashtag', 'cashtag'],
+    ['textEntityTypeCode', 'code']
+    ['textEntityTypeEmailAddress', 'email'],
+    ['textEntityTypeHashtag', 'hashtag']
+
+])
+*/
+
 exports.generateRpcReqId = () => {
     return crypto.randomBytes(4).toString('hex')
 }
@@ -10,8 +22,8 @@ exports.get_tdlib_message_id = (msg_id) => {
 
 exports.get_api_message_id = (msg_id) => {
     let result = parseInt(msg_id) >> 20
-    if (result >> 20 === msg_id) return result
-    else return -1
+    if ((result << 20) === parseInt(msg_id)) return result
+    else throw new Error('Wrong message id.')
 }
 
 exports.parseReplyMarkup = (replymarkup) => {
@@ -186,8 +198,14 @@ exports.buildBotApiUser = (user, full) => {
             bot_user.bot_options.description = full.bot_info.description
             if (full.bot_info.commands) {
                 bot_user.bot_options.commands = []
-                for (let { command, description } of full.bot_info.commands) {
-                    bot_user.bot_options.commands.push({command, description})
+                for (let {
+                        command,
+                        description
+                    } of full.bot_info.commands) {
+                    bot_user.bot_options.commands.push({
+                        command,
+                        description
+                    })
                 }
             }
         }
@@ -197,16 +215,155 @@ exports.buildBotApiUser = (user, full) => {
 }
 
 
-exports.buildBotApiChat = (chat, additional, additional_full) => {
+exports.buildBotApiChat = (chat, additional, additional_full, sticker, pin_msg) => {
     let bot_chat = {
         id: chat.id,
         title: chat.title
-
     }
     if (chat.photo) {
         bot_chat.photo = {
             small_file_id: chat.photo.small.remote.id,
             big_file_id: chat.photo.big.remote.id
         }
+    }
+    if (chat.type['@type'] == 'chatTypeSupergroup') {
+        if (chat.type.is_channel) {
+            bot_chat.type = 'channel'
+            bot_chat.sign_messages = additional.sign_messages
+        } else {
+            bot_chat.type = 'supergroup'
+            bot_chat.anyone_can_invite = exports.anyone_can_invite
+        }
+        bot_chat.username = additional.username
+        bot_chat.date = additional.date
+        bot_chat.status = exports.getStatus(additional.status)
+        bot_chat.member_count = additional.member_count
+        bot_chat.is_verified = additional.is_verified
+        bot_chat.restriction_reason = additional.restriction_reason
+        if (additional_full) {
+            bot_chat.administrator_count = additional_full.administrator_count
+            bot_chat.restricted_count = additional_full.restricted_count
+            bot_chat.banned_count = additional_full.banned_count
+            bot_chat.can_get_members = additional_full.can_get_members
+            bot_chat.can_set_username = additional_full.can_set_username
+            bot_chat.can_set_sticker_set = additional_full.can_set_sticker_set
+            bot_chat.is_all_history_available = additional_full.is_all_history_available
+            if (!isNaN(additional_full.migrate_from_chat_id))
+                bot_chat.migrate_from_chat_id = -additional_full.upgraded_from_basic_group_id
+        }
+        if (sticker) {
+            bot_chat.sticker_set_name = sticker.name
+        }
+        if (pin_msg)
+            bot_chat.pinned_message = pin_msg
+    } else if (chat.type['@type'] == 'chatTypeBasicGroup') {
+        bot_chat.type = 'group'
+        bot_chat.all_members_are_administrators = additional.everyone_is_administrator
+        bot_chat.is_active = additional.is_active
+        bot_chat.creator = additional_full.creator_user_id
+    } else if (chat.type['@type'] == 'chatTypePrivate') {
+        bot_chat.type = 'private'
+        bot_chat = Object.assign(bot_chat, exports.buildBotApiUser(additional, additional_full))
+    } else {
+        throw new Error('Unknown Chat Type.')
+    }
+    return bot_chat
+}
+
+exports.buildBotApiMessage = (message, chat, from, reply_msg, forward_info) => {
+    let bot_message = {
+        message_id: exports.get_api_message_id(message.id),
+        date: message.date,
+        edit_date: message.edit_date,
+        is_channel_post: message.is_channel_post,
+        can_be_deleted_for_all_users: message.can_be_deleted_for_all_users,
+    }
+    if (chat)
+        bot_message.chat = chat
+    if (from)
+        bot_message.from = from
+    if (reply_msg)
+        bot_message.reply_to_message = reply_msg
+    if (message.reply_to_message_id)
+        bot_message.reply_to_message_id = exports.get_api_message_id(message.reply_to_message_id)
+    if (message.media_group_id)
+        bot_message.media_group_id = message.media_group_id
+    if ('views' in message)
+        bot_message.views = message.views
+    if (message.forward_info)
+        switch (message.forward_info['@type']) {
+            case 'messageForwardedFromUser':
+                bot_message.forward_from = forward_info
+                bot_message.forward_date = message.forward_info.date
+                break
+            case 'messageForwardedPost':
+                bot_message.forward_from_chat = forward_info
+                bot_message.forward_from_message_id = exports.get_api_message_id(message.forward_info.message_id)
+                bot_message.forward_date = message.forward_info.date
+                bot_message.forward_signature = message.forward_info.author_signature
+                break
+        }
+    switch (message.content['@type']) {
+        case 'messageText':
+            bot_message.text = message.content.text.text
+            // Before solving the mentioned issue, ignore entities for a while.
+            break
+            //case ''
+    }
+    return bot_message
+}
+
+/* TODO: Solve the problem of passing mentioned user object.
+exports.buildBotApiEntities = (entities) => {
+    let _entities = entities.map((entity) => {
+        return {
+            offset: entity.offset,
+            length: entity.length
+        }
+    })
+}
+
+*/
+
+exports.getStatus = (chatMemberStatus) => {
+    switch (chatMemberStatus['@type']) {
+        case 'chatMemberStatusCreator':
+            delete chatMemberStatus['@type']
+            delete chatMemberStatus['@extra']
+            return Object.assign(chatMemberStatus, {
+                status: 'creator'
+            })
+        case 'chatMemberStatusAdministrator':
+            delete chatMemberStatus['@type']
+            delete chatMemberStatus['@extra']
+            return Object.assign(chatMemberStatus, {
+                status: 'administrator'
+            })
+        case 'chatMemberStatusMember':
+            delete chatMemberStatus['@type']
+            delete chatMemberStatus['@extra']
+            return Object.assign(chatMemberStatus, {
+                status: 'member'
+            })
+        case 'chatMemberStatusRestricted':
+            delete chatMemberStatus['@type']
+            delete chatMemberStatus['@extra']
+            return Object.assign(chatMemberStatus, {
+                status: 'restricted',
+                until_date: chatMemberStatus.restricted_until_date
+            })
+        case 'chatMemberStatusLeft':
+            delete chatMemberStatus['@type']
+            delete chatMemberStatus['@extra']
+            return Object.assign(chatMemberStatus, {
+                status: 'left'
+            })
+        case 'chatMemberStatusBBanned':
+            delete chatMemberStatus['@type']
+            delete chatMemberStatus['@extra']
+            return Object.assign(chatMemberStatus, {
+                status: 'kicked',
+                until_date: chatMemberStatus.banned_until_date
+            })
     }
 }
