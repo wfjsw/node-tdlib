@@ -7,7 +7,7 @@ lib.td_set_log_verbosity_level(2)
 
 class Bot extends lib.TdClientActor {
     constructor(api_id, api_hash, bot_token, use_test_dc = false, identifier = null) {
-        if (!api_id || !api_hash || !bot_token) throw new Error('missing api_id, api_hash or bot_token')
+        if (!api_id || !api_hash) throw new Error('missing api_id, api_hash')
         if (identifier === null) identifier = `bot${bot_token.split(':')[0]}`
         super({
             api_id,
@@ -21,22 +21,27 @@ class Bot extends lib.TdClientActor {
         })
         let self = this
         this.ready = false
-        this.on('updateAuthorizationState', (update) => {
-            switch (update.authorization_state['@type']) {
-                case 'authorizationStateWaitPhoneNumber':
-                    return this.run('checkAuthenticationBotToken', {
-                        token: bot_token
-                    })
-            }
-        })
-        this.on('updateMessageSendSucceeded', (update) => {
+        if (bot_token) {
+            this.on('__updateAuthorizationState', (update) => {
+                switch (update.authorization_state['@type']) {
+                    case 'authorizationStateWaitPhoneNumber':
+                        return this.run('checkAuthenticationBotToken', {
+                            token: bot_token
+                        })
+                }
+            })
+        }
+        this.on('__updateMessageSendSucceeded', (update) => {
             this.emit(`_msgSent:${update.old_message_id}`, update)
         })
-        this.on('updateMessageSendFailed', (update) => {
+        this.on('__updateMessageSendFailed', (update) => {
             this.emit(`_msgFail:${update.old_message_id}`, update)
         })
-        this.on('updateNewMessage', (update) => {
+        this.on('__updateNewMessage', (update) => {
             this._processIncomingUpdate.call(self, update.message)
+        })
+        this.on('__updateMessageEdited', (update) => {
+            this._processIncomingEdit.call(self, update)
         })
         this.once('ready', () => this.ready = true)
     }
@@ -56,7 +61,7 @@ class Bot extends lib.TdClientActor {
         chat_id = await this._checkChatId(chat_id)
         let opt = {
             chat_id,
-            reply_to_message_id: options.reply_to_message_id || 0,
+            reply_to_message_id: _util.get_tdlib_message_id(options.reply_to_message_id || 0),
             disable_notification: !!options.disable_notification,
             from_background: true
         }
@@ -99,8 +104,6 @@ class Bot extends lib.TdClientActor {
 
     async sendPhoto(chat_id, photo, options = {}, file_options = {}) {
         if (!this.ready) throw new Error('Not ready.')
-
-
     }
 
     async getUser(user_id) {
@@ -212,10 +215,10 @@ class Bot extends lib.TdClientActor {
                     break
             }
         if (_msg.reply_to_message_id && !internal_call)
-            reply_msg = await this._getMessage((await this.run('getRepliedMessage', {
+            reply_msg = await this._getMessage(await this.run('getRepliedMessage', {
                 chat_id: message.chat_id,
                 message_id: _mid
-            })), true)
+            }), true)
         return _util.buildBotApiMessage(_msg, chat, from, reply_msg, forward_info)
     }
 
@@ -263,6 +266,16 @@ class Bot extends lib.TdClientActor {
         let msg = await this._getMessage(message)
         this.emit('message', msg)
         console.log(msg)
+    }
+
+    async _processIncomingEdit(update) {
+        let _msg = await this.run('getMessage', {
+            chat_id: update.chat_id,
+            message_id: update.message_id
+        })
+        if (_msg.is_outgoing) return
+        let msg = await this._getMessage(_msg)
+        this.emit('edited_message', msg)
     }
 
     async _initChatIfNeeded(chat_id) {

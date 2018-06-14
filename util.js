@@ -308,7 +308,65 @@ exports.buildBotApiMessage = (message, chat, from, reply_msg, forward_info) => {
             bot_message.text = message.content.text.text
             // Before solving the mentioned issue, ignore entities for a while.
             break
-            //case ''
+        case 'messageAudio':
+            bot_message.audio = {
+                file_id: message.content.audio.audio.remote.id,
+                duration: message.content.audio.duration,
+                performer: message.content.audio.performer,
+                title: message.content.audio.title,
+                mime_type: message.content.audio.mime_type,
+            }
+            if (message.content.audio.album_cover_thumbnail) {
+                bot_message.audio.thumb = {
+                    file_id: message.content.audio.album_cover_thumbnail.photo.remote.id,
+                    width: message.content.audio.album_cover_thumbnail.width,
+                    height: message.content.audio.album_cover_thumbnail.height,
+                    file_size: message.content.audio.album_cover_thumbnail.photo.size || message.content.audio.album_cover_thumbnail.photo.expected_size
+                }
+            }
+            if (message.content.caption) {
+                bot_message.caption = message.content.caption.text
+                // entities
+            }
+            break
+        case 'messageDocument': 
+            bot_message.document = {
+                file_id: message.content.document.document.remote.id,
+                file_name: message.content.document.file_name,
+                mime_type: message.content.document.mime_type,
+                file_size: message.content.document.document.size || message.content.document.document.expected_size
+            }
+            if (message.content.document.thumbnail) {
+                bot_message.document.thumb = {
+                    file_id: message.content.audio.thumbnail.photo.remote.id,
+                    width: message.content.audio.thumbnail.width,
+                    height: message.content.audio.thumbnail.height,
+                    file_size: message.content.audio.thumbnail.photo.size || message.content.audio.album_cover_thumbnail.photo.expected_size
+                }
+            }
+            if (message.content.caption) {
+                bot_message.caption = message.content.caption.text
+                // entities
+            }
+            break
+        case 'messageGame': 
+            bot_message.game = {
+                id: message.content.game.id,
+                short_name: message.content.game.short_name,
+                title: message.content.game.title,
+                description: message.content.game.description,
+                text: message.content.game.text.text,
+                // entity
+                
+            }
+        case 'messageLocation':
+            bot_message.location = {
+                latitude: message.content.location.latitude,
+                longitude: message.content.location.longitude,
+                live_period: message.content.live_period,
+                expires_in: message.content.expires_in
+            }
+            break
     }
     return bot_message
 }

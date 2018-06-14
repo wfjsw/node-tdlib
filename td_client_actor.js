@@ -30,7 +30,7 @@ class TdClientActor extends EventEmitter {
         tdlib_param.ignore_file_names = 'ignore_file_names' in options ? options.ignore_file_names : false
         this._tdlib_param = tdlib_param
         this._encryption_key = 'database_encryption_key' in options ? options.database_encryption_key : 'password'
-        this.on('updateAuthorizationState', (update) => {
+        this.on('__updateAuthorizationState', (update) => {
             switch (update.authorization_state['@type']) {
                 case 'authorizationStateWaitTdlibParameters':
                     return this.run('setTdlibParameters', {
@@ -87,7 +87,7 @@ class TdClientActor extends EventEmitter {
             for(let update of updates) {
                 console.log(update)
                 update = JSON.parse(update)
-                if (update['@type'] && update['@type'] != 'error') this.emit(update['@type'], update)
+                if (update['@type'] && update['@type'] != 'error') this.emit('__' + update['@type'], update)
                 if (update['@extra']) this.emit(update['@extra'], update)
             }
         }
