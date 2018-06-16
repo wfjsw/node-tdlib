@@ -44,15 +44,13 @@ class Bot extends lib.TdClientActor {
             this._processIncomingEdit.call(self, update)
         })
         this.once('ready', () => this.ready = true)
+        this.conversion = new (require('./bot_types'))(this)
     }
 
     async getMe() {
         if (!this.ready) throw new Error('Not ready.')
         let me = await this.run('getMe', {})
-        let me_full = await this.run('getUserFullInfo', {
-            user_id: me.id
-        })
-        return _util.buildBotApiUser(me, me_full)
+        return this.conversion.buildUser(me, true)
     }
 
     async sendMessage(chat_id, text, options = {}) {
@@ -113,7 +111,24 @@ class Bot extends lib.TdClientActor {
 
     async getChat(chat_id) {
         if (!this.ready) throw new Error('Not ready.')
-        return this._getUser(chat_id, false, true)
+        return this._getChat(chat_id, true)
+    }
+
+    async getStickerSet(name) {
+        if (!this.ready) throw new Error('Not ready.')
+        let pack 
+        if (isNaN(name)) {
+            // is Name
+            pack = await this.run('searchStickerSet', {
+                name
+            })
+        } else {
+            // is ID
+            pack = await this.run('getStickerSet', {
+                set_id: name
+            })
+        }
+        return this.conversion.buildStickerSet(pack)
     }
 
     // Helpers
@@ -121,71 +136,20 @@ class Bot extends lib.TdClientActor {
     async _getUser(user_id, out_full = true) {
         let _id = await this._checkChatId(user_id)
         if (_id <= 0) throw new Error('Not a user.')
-        let user, userfull
-        user = await this.run('getUser', {
+        let user = await this.run('getUser', {
             user_id: _id
         })
-        if (out_full)
-            userfull = await this.run('getUserFullInfo', {
-                user_id: _id
-            })
-        return _util.buildBotApiUser(user, userfull)
+
+        return this.conversion.buildUser(user, out_full)
     }
 
-    async _getChat(chat_id, internal_call = false, out_full = true) {
-        if (!this.ready) throw new Error('Not ready.')
+    async _getChat(chat_id, out_full = true) {
         let _id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(_id)
         let chat = await this.run('getChat', {
             chat_id: _id
         })
-        let additional, additional_full, sticker_set, pin_msg
-        if (chat.type['@type'] == 'chatTypeSupergroup') {
-            additional = await this.run('getSupergroup', {
-                supergroup_id: chat.type.supergroup_id
-            })
-            if (out_full) {
-                try {
-                    additional_full = await this.run('getSupergroupFullInfo', {
-                        supergroup_id: chat.type.supergroup_id
-                    })
-                    if (additional_full.pinned_message_id && !internal_call) {
-                        let pin_msg_orig = await this.run('getMessage', {
-                            chat_id: chat.id,
-                            message_id: additional_full.pinned_message_id
-                        })
-                        pin_msg = await this._getMessage(pin_msg_orig, true)
-                        console.log(pin_msg)
-                        debugger
-                    }
-                    if (additional_full.sticker_set_id != "0")
-                        sticker_set = await this.run('getStickerSet', {
-                            set_id: additional_full.sticker_set_id
-                        })
-                } catch (e) {
-                    console.error(e)
-                }
-            }
-        } else if (chat.type['@type'] == 'chatTypeBasicGroup') {
-            additional = await this.run('getBasicGroup', {
-                basic_group_id: chat.type.basic_group_id
-            })
-            if (out_full)
-                additional_full = await this.run('getBasicGroupFullInfo', {
-                    basic_group_id: chat.type.basic_group_id
-                })
-        } else if (chat.type['@type'] == 'chatTypePrivate') {
-            additional = await this.run('getUser', {
-                user_id: chat.type.user_id
-            })
-            if (out_full)
-                additional_full = await this.run('getUserFullInfo', {
-                    user_id: chat.type.user_id
-                })
-        } else {
-            throw new Error('Unknown Chat Type.')
-        }
-        return _util.buildBotApiChat(chat, additional, additional_full, sticker_set, pin_msg)
+        return this.conversion.buildChat(chat, out_full)
     }
 
     // Note: it use API id. Don't forget to convert
@@ -198,28 +162,8 @@ class Bot extends lib.TdClientActor {
         return this._getMessage(_msg)
     }
 
-    async _getMessage(message, internal_call = false) {
-        let _mid = message.id
-        let _msg = message
-        let chat, from, reply_msg, forward_info
-        chat = await this._getChat(message.chat_id, internal_call, false)
-        if (_msg.sender_user_id)
-            from = await this._getUser(_msg.sender_user_id, false) // get Full User here.
-        if (_msg.forward_info)
-            switch (_msg.forward_info['@type']) {
-                case 'messageForwardedFromUser':
-                    forward_info = await this._getUser(_msg.forward_info.user_id, false)
-                    break
-                case 'messageForwardedPost':
-                    forward_info = await this._getChat(_msg.forward_info.chat_id, internal_call, false)
-                    break
-            }
-        if (_msg.reply_to_message_id && !internal_call)
-            reply_msg = await this._getMessage(await this.run('getRepliedMessage', {
-                chat_id: message.chat_id,
-                message_id: _mid
-            }), true)
-        return _util.buildBotApiMessage(_msg, chat, from, reply_msg, forward_info)
+    async _getMessage(message, follow_replies_level) {
+        return this.conversion.buildMessage(message, follow_replies_level)
     }
 
     async _generateFormattedText(text, parse_mode) {

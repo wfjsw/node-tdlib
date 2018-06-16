@@ -28,6 +28,10 @@ class TdClientActor extends EventEmitter {
         tdlib_param.application_version = 'application_version' in options ? options.application_version : 'dogfood'
         tdlib_param.enable_storage_optimizer = 'enable_storage_optimizer' in options ? options.enable_storage_optimizer : true
         tdlib_param.ignore_file_names = 'ignore_file_names' in options ? options.ignore_file_names : false
+        if ('use_file_database' in options && options.use_file_database == false) {
+            tdlib_param.use_message_database = false
+            tdlib_param.use_chat_info_database = false
+        }
         this._tdlib_param = tdlib_param
         this._encryption_key = 'database_encryption_key' in options ? options.database_encryption_key : 'password'
         this.on('__updateAuthorizationState', (update) => {
