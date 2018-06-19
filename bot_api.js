@@ -1,7 +1,11 @@
 // https://core.telegram.org/bots/api
 
-let lib = require('./td_client_actor')
-let _util = require('./util')
+const stream = require('stream')
+const fs = require('fs')
+const fsp = fs.promises
+const path = require('path')
+const lib = require('./td_client_actor')
+const _util = require('./util')
 
 lib.td_set_log_verbosity_level(2)
 
@@ -44,7 +48,7 @@ class Bot extends lib.TdClientActor {
             this._processIncomingEdit.call(self, update)
         })
         this.once('ready', () => this.ready = true)
-        this.conversion = new (require('./bot_types'))(this)
+        this.conversion = new(require('./bot_types'))(this)
     }
 
     async getMe() {
@@ -55,32 +59,12 @@ class Bot extends lib.TdClientActor {
 
     async sendMessage(chat_id, text, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
-        let self = this
-        chat_id = await this._checkChatId(chat_id)
-        let opt = {
-            chat_id,
-            reply_to_message_id: _util.get_tdlib_message_id(options.reply_to_message_id || 0),
-            disable_notification: !!options.disable_notification,
-            from_background: true
-        }
-        if (options.reply_markup) {
-            opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
-        }
-        opt.input_message_content = {
+        let media = {
             '@type': 'inputMessageText',
-            disable_web_page_preview: !!options.disable_web_page_preview
+            disable_web_page_preview: options.disable_web_page_preview,
+            text: this._generateFormattedText(text, options.parse_mode)
         }
-        opt.input_message_content.text = await self._generateFormattedText(text, options.parse_mode)
-        await self._initChatIfNeeded(chat_id)
-        let old_msg = await self.run('sendMessage', opt)
-        return new Promise(async (rs, rj) => {
-            self.once(`_msgSent:${old_msg.id}`, async (update) => {
-                rs(this._getMessage(update.message))
-            })
-            this.once(`_msgFail:${old_msg.id}`, async (update) => {
-                rj(update)
-            })
-        })
+        return this._sendMessage(chat_id, media, options)
     }
 
     async forwardMessage(chat_id, from_chat_id, message_ids, options = {}) {
@@ -100,8 +84,33 @@ class Bot extends lib.TdClientActor {
         return this.run('forwardMessages', opt)
     }
 
-    async sendPhoto(chat_id, photo, options = {}, file_options = {}) {
+    async sendPhoto(chat_id, photo, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
+        let media = {
+            '@type': 'inputMessagePhoto',
+            
+        }
+        if (options.caption)
+            media.caption = this._generateFormattedText(options.caption, options.parse_mode)
+        return this._sendMessage(chat_id, media, options)
+    }
+
+    async sendLocation(chat_id, lat, long, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let media = {
+            '@type': 'inputMessageLocation',
+            location: {
+                '@type': 'location',
+                latitude: lat,
+                longitude: long
+            }
+        }
+        if (options.live_period) {
+            media.live_period = options.live_period
+        } else {
+            media.live_period = 0
+        }
+        return this._sendMessage(chat_id, media, options)
     }
 
     async getUser(user_id) {
@@ -116,7 +125,7 @@ class Bot extends lib.TdClientActor {
 
     async getStickerSet(name) {
         if (!this.ready) throw new Error('Not ready.')
-        let pack 
+        let pack
         if (isNaN(name)) {
             // is Name
             pack = await this.run('searchStickerSet', {
@@ -203,6 +212,93 @@ class Bot extends lib.TdClientActor {
             })).id
         else
             return chat_id
+    }
+
+    async _prepareUploadFile(file, file_name = null) {
+        // File can be instance of Stream, Buffer or String(remote.id) or String(local_path)
+        if (file instanceof stream.Stream) {
+            return new Promise((rs, rj) => {
+                // TODO: find a way to set file metas
+                // Issue: https://github.com/tdlib/td/issues/290
+                let file_path = _util.generateTempFileLocation(this._instance_id)
+                let write_stream = fs.createWriteStream(file_path)
+                write_stream.on('error', rj)
+                write_stream.on('finish', () => {
+                    if (file_name) {
+                        return rs({
+                            '@type': 'inputFileGenerated',
+                            original_path: path.join(file_path, file_name),
+                            conversion: '#copy_rename_remove#',
+                            expected_size: 0
+                        })
+                    } else {
+                        return rs({
+                            '@type': 'inputFileLocal',
+                            path: file_path
+                        })
+                    }
+                })
+                file.pipe(write_stream)
+            })
+        } else if (Buffer.isBuffer(file)) {
+            let file_path = _util.generateTempFileLocation(this._instance_id)
+            await fsp.writeFile(file_path, file)
+            if (file_name) {
+                return {
+                    '@type': 'inputFileGenerated',
+                    original_path: path.join(file_path, file_name),
+                    conversion: '#copy_rename_remove#',
+                    expected_size: 0
+                }
+            } else {
+                return {
+                    '@type': 'inputFileLocal',
+                    path: file_path
+                }
+            }
+        } else if (isNaN(file)) {
+            if (await _util.fileExists(file)) {
+                return {
+                    '@type': 'inputFileLocal',
+                    path: path.resolve(file)
+                }
+            } else {
+                return {
+                    '@type': 'inputFileRemote',
+                    id: file
+                }
+            }
+        } else {
+            return {
+                '@type': 'inputFileId',
+                id: file
+            }
+        }
+    }
+
+    async _sendMessage(chat_id, content, options = {}) {
+        let self = this
+        chat_id = await this._checkChatId(chat_id)
+        let opt = {
+            chat_id,
+            reply_to_message_id: _util.get_tdlib_message_id(options.reply_to_message_id || 0),
+            disable_notification: !!options.disable_notification,
+            from_background: true,
+            input_message_content: content
+        }
+        if (options.reply_markup) {
+            opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+        }
+        await self._initChatIfNeeded(chat_id)
+        let old_msg = await self.run('sendMessage', opt)
+        return new Promise(async (rs, rj) => {
+            self.once(`_msgSent:${old_msg.id}`, async (update) => {
+                rs(this._getMessage(update.message))
+            })
+            this.once(`_msgFail:${old_msg.id}`, async (update) => {
+                rj(update)
+            })
+        })
     }
 
     async _processIncomingUpdate(message) {

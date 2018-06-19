@@ -95,9 +95,9 @@ class BotTypeConversion {
                 if (full.bot_info.commands) {
                     bot_user.bot_options.commands = []
                     for (let {
-                        command,
-                        description
-                    } of full.bot_info.commands) {
+                            command,
+                            description
+                        } of full.bot_info.commands) {
                         bot_user.bot_options.commands.push({
                             command,
                             description
@@ -137,7 +137,7 @@ class BotTypeConversion {
             bot_chat.username = additional.username
             bot_chat.date = additional.date
             bot_chat.status = _util.getStatus(additional.status)
-            bot_chat.member_count = additional.member_count
+            bot_chat.member_count = additional.member_count // This is not reliable. Use another approach.
             bot_chat.is_verified = additional.is_verified
             bot_chat.restriction_reason = additional.restriction_reason
             if (out_full) {
@@ -146,15 +146,18 @@ class BotTypeConversion {
                         supergroup_id: chat.type.supergroup_id
                     })
 
-                    // Weird issue: https://github.com/tdlib/td/issues/289
-                    try { // REMOVE THIS
+                    // Issue: https://github.com/tdlib/td/issues/289#issuecomment-397820646
+                    // Bot can't receive a message, which isn't accessible due to bots privacy settings even through getChatPinnedMessage. The only exception is for replied messages, which can be received through getRepliedMessage.
+                    // So we will just try. If it failed, we ignore it.
+                    // In the future, we will read the privacy settings from the bot's profile.
+                    try { 
                         if (additional_full.pinned_message_id) {
                             let pin_msg_orig = await this.client.run('getChatPinnedMessage', {
                                 chat_id: chat.id
                             })
                             bot_chat.pinned_message = await this.buildMessage(pin_msg_orig, true)
                         }
-                    } catch (e) { } // REMOVE THIS
+                    } catch (e) {} 
 
                     if (additional_full.sticker_set_id != "0") {
                         let sticker_set = await this.client.run('getStickerSet', {
@@ -163,7 +166,7 @@ class BotTypeConversion {
                         bot_chat.sticker_set_name = sticker_set.name
                         bot_chat.sticker_set_id = additional_full.sticker_set_id
                     }
-
+                    bot_chat.description = additional_full.description
                     bot_chat.administrator_count = additional_full.administrator_count
                     bot_chat.restricted_count = additional_full.restricted_count
                     bot_chat.banned_count = additional_full.banned_count
@@ -303,7 +306,9 @@ class BotTypeConversion {
             case 'messageChatAddMembers':
                 let new_members = []
                 for (let uid of message.content.member_user_ids) {
-                    let new_member = await this.client.run('getUser', { user_id: uid })
+                    let new_member = await this.client.run('getUser', {
+                        user_id: uid
+                    })
                     new_members.push(await this.buildUser(new_member, false))
                 }
                 bot_message.new_chat_members = new_members
@@ -314,7 +319,9 @@ class BotTypeConversion {
                 bot_message.new_chat_member = bot_message.from
                 break
             case 'messageChatDeleteMember':
-                let left_member = await this.client.run('getUser', { user_id: message.content.user_id })
+                let left_member = await this.client.run('getUser', {
+                    user_id: message.content.user_id
+                })
                 bot_message.left_chat_member = await this.buildUser(left_member, false)
 
                 // NOTE: we didn't get this msg when the bot itself got kicked.
