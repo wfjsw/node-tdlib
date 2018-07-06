@@ -8,6 +8,21 @@ const maskpoint_mirror_table = new Map([
 ])
 
 
+const chataction_mirror_table = new Map([
+    ['typing', 'chatActionTyping'],
+    ['upload_photo', 'chatActionUploadingPhoto'],
+    ['record_video', 'chatActionRecordingVideo'],
+    ['upload_video', 'chatActionUploadingVideo'],
+    ['record_audio', 'chatActionRecordingVoiceNote'],
+    ['upload_audio', 'chatActionRecordingVoiceNote'],
+    ['upload_document', 'chatActionUploadingDocument'],
+    ['find_location', 'chatActionChoosingLocation'],
+    ['record_video_note', 'chatActionRecordingVideoNote'],
+    ['upload_video_note', 'chatActionUploadingVideoNote'],
+    ['find_contact', 'chatActionChoosingContact'], 
+    ['play_game', 'chatActionStartPlayingGame']
+])
+
 class BotTypeConversion {
     constructor(TdClient) {
         if (!TdClient) throw new Error('You have to pass a functional TdClient for this to work.')
@@ -497,6 +512,18 @@ class BotTypeConversion {
         return _audio
     }
 
+    async buildTdlibChatAction(action) {
+        if (chataction_mirror_table.has(action)) {
+            return {
+                '@type': chataction_mirror_table.get(action)
+            }
+        } else {
+            return {
+                '@type': 'chatActionCancel'
+            }
+        }
+    }
+
     async buildContact(contact) {
         return {
             phone_number: contact.phone_number,
@@ -631,6 +658,17 @@ class BotTypeConversion {
         for (let s of set.stickers)
             _set.stickers.push(await this.buildSticker(s, false))
         return _set
+    }
+
+    async buildUserProfilePhotos(upps) {
+        let _photos = []
+        for (let p of upps.photos) {
+            _photos.push(await this.buildPhoto(p))
+        }
+        return {
+            total_count: upps.total_count,
+            photos: _photos
+        }
     }
 
     async buildVenue(venue) {

@@ -25,6 +25,7 @@ class Bot extends lib.TdClientActor {
         })
         let self = this
         this.ready = false
+        this._inited_chat = new Set()
         if (bot_token) {
             this.on('__updateAuthorizationState', (update) => {
                 switch (update.authorization_state['@type']) {
@@ -48,7 +49,7 @@ class Bot extends lib.TdClientActor {
             this._processIncomingEdit.call(self, update)
         })
         this.once('ready', () => this.ready = true)
-        this.conversion = new(require('./bot_types'))(this)
+        this.conversion = new (require('./bot_types'))(this)
     }
 
     async getMe() {
@@ -62,12 +63,12 @@ class Bot extends lib.TdClientActor {
         let media = {
             '@type': 'inputMessageText',
             disable_web_page_preview: options.disable_web_page_preview,
-            text: this._generateFormattedText(text, options.parse_mode)
+            text: await this._generateFormattedText(text, options.parse_mode)
         }
         return this._sendMessage(chat_id, media, options)
     }
 
-    async forwardMessage(chat_id, from_chat_id, message_ids, options = {}) {
+    async forwardMessage(chat_id, from_chat_id, message_ids, { disable_notification }) {
         if (!this.ready) throw new Error('Not ready.')
         if (!Array.isArray(message_ids)) message_ids = [message_ids]
         chat_id = await this._checkChatId(chat_id)
@@ -76,19 +77,28 @@ class Bot extends lib.TdClientActor {
         let opt = {
             chat_id,
             from_chat_id,
-            disable_notification: !!options.disable_notification,
+            disable_notification: !!disable_notification,
             from_background: true
         }
         await this._initChatIfNeeded(chat_id)
         await this._initChatIfNeeded(from_chat_id)
-        return this.run('forwardMessages', opt)
+        let ret = await this.run('forwardMessages', opt)
+        if (ret.total_count == 1) {
+            return this.conversion.buildMessage(ret.messages[0])
+        } else {
+            let _msgs = []
+            for (let m of ret.messages) {
+                _msgs.push(await this.buildMessage(m, 0))
+            }
+            return _msgs
+        }
     }
 
-    async sendPhoto(chat_id, photo, options = {}) {
+    async sendPhoto(chat_id, photo, options = {}, { file_name }) {
         if (!this.ready) throw new Error('Not ready.')
         let media = {
             '@type': 'inputMessagePhoto',
-            
+
         }
         if (options.caption)
             media.caption = this._generateFormattedText(options.caption, options.parse_mode)
@@ -111,6 +121,207 @@ class Bot extends lib.TdClientActor {
             media.live_period = 0
         }
         return this._sendMessage(chat_id, media, options)
+    }
+
+    async editMessageLiveLocation(latitude, longitude, options = {}) {
+        if (options.chat_id && options.message_id) {
+            let _opt = {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id),
+                location: {
+                    latitude,
+                    longitude
+                }
+            }
+            if (options.reply_markup) {
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            }
+            let ret = await this.run('editMessageLiveLocation', _opt)
+            return _util.buildMessage(ret)
+        } else if (options.inline_message_id) {
+            let _opt = {
+                inline_message_id: options.inline_message_id,
+                location: {
+                    latitude,
+                    longitude
+                }
+            }
+            if (options.reply_markup) {
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            }
+            let ret = await this.run('editMessageLiveLocation', _opt)
+            if (ret['@type'] == 'ok')
+                return true
+            else throw ret
+        } else {
+            throw new Error('Please specify chat_id and message_id or inline_message_id.')
+        }
+    }
+
+    async stopMessageLiveLocation(options = {}) {
+        if (options.chat_id && options.message_id) {
+            let _opt = {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id),
+                location: null
+            }
+            if (options.reply_markup) {
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            }
+            let ret = await this.run('editMessageLiveLocation', _opt)
+            return _util.buildMessage(ret)
+        } else if (options.inline_message_id) {
+            let _opt = {
+                inline_message_id: options.inline_message_id,
+                location: null
+            }
+            if (options.reply_markup) {
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            }
+            let ret = await this.run('editMessageLiveLocation', _opt)
+            if (ret['@type'] == 'ok')
+                return true
+            else throw ret
+        } else {
+            throw new Error('Please specify chat_id and message_id or inline_message_id.')
+        }
+    }
+
+    async sendVenue(chat_id, lat, long, title, address, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let media = {
+            venue:{
+                '@type': 'inputMessageVenue',
+                location: {
+                    '@type': 'location',
+                    latitude: lat,
+                    longitude: long
+                },
+                title,
+                address,
+                provider: 'foursquare',
+                id: options.foursquare_id || 0
+            }
+        }
+        return this._sendMessage(chat_id, media, options)
+    }
+
+    async sendVenue(chat_id, phone_number, first_name, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let media = {
+            contact: {
+                '@type': 'inputMessageContact',
+                phone_number,
+                first_name,
+                last_name: options.last_name || ''
+            }
+        }
+        return this._sendMessage(chat_id, media, options)
+    }
+
+    async sendChatAction(chat_id, action, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        await this._initChatIfNeeded(chat_id)
+        let opt = {
+            chat_id,
+            action: await this.conversion.buildTdlibChatAction(action)
+        }
+        let ret = await this.run('sendChatAction', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async getUserProfilePhotos(user_id, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let opt = {
+            user_id,
+            offset: options.offset || 0,
+            limit: options.limit || 100
+        }
+        let ret = await this.run('getUserProfilePhotos', opt)
+        return this.conversion.buildUserProfilePhotos(ret)
+    }
+
+    // getFile - ?????????
+
+    async kickChatMember(chat_id, user_id, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        await this._initChatIfNeeded(chat_id)
+        let opt = {
+            chat_id,
+            user_id,
+            status: {
+                '@type': 'chatMemberStatusBanned'
+            }
+        }
+        if (options.until_date) {
+            opt.status.banned_until_date = options.until_date
+        }
+        let ret = await this.run('setChatMemberStatus', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async unbanChatMember(chat_id, user_id, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        await this._initChatIfNeeded(chat_id)
+        let opt = {
+            chat_id,
+            user_id,
+            status: {
+                '@type': 'chatMemberStatusLeft'
+            }
+        }
+        let ret = await this.run('setChatMemberStatus', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async restrictChatMember(chat_id, user_id, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        await this._initChatIfNeeded(chat_id)
+        let opt = {
+            chat_id,
+            user_id,
+            status: {
+                '@type': 'chatMemberStatusRestricted',
+            }
+        }
+        if (options.until_date) {
+            opt.status.restricted_until_date = options.until_date
+        }
+        if ('can_send_message' in options) opt.status.can_send_messages = options.can_send_messages
+        if ('can_send_media_messages' in options) opt.status.can_send_media_messages = options.can_send_media_messages
+        if ('can_send_other_messages' in options) opt.status.can_send_other_messages = options.can_send_other_messages
+        if ('can_add_web_page_previews' in options) opt.status.can_add_web_page_previews = options.can_add_web_page_previews
+        
+        let ret = await this.run('setChatMemberStatus', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async promoteChatMember(chat_id, user_id, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        await this._initChatIfNeeded(chat_id)
+        let opt = {
+            chat_id,
+            user_id,
+            status: {
+                '@type': 'chatMemberStatusAdministrator',
+            }
+        }
+        if ('can_change_info' in options) opt.status.can_change_info = options.can_change_info
+        if ('can_post_messages' in options) opt.status.can_post_messages = options.can_post_messages
+        if ('can_edit_messages' in options) opt.status.can_edit_messages = options.can_edit_messages
+        if ('can_delete_messages' in options) opt.status.can_delete_messages = options.can_delete_messages
+        if ('can_invite_users' in options) opt.status.can_invite_users = options.can_invite_users
+        if ('can_restrict_members' in options) opt.status.can_restrict_members = options.can_restrict_members
+        if ('can_pin_messages' in options) opt.status.can_pin_messages = options.can_pin_messages
+        if ('can_promote_members' in options) opt.status.can_promote_members = options.can_promote_members
+
+        let ret = await this.run('setChatMemberStatus', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
     }
 
     async getUser(user_id) {
@@ -138,6 +349,13 @@ class Bot extends lib.TdClientActor {
             })
         }
         return this.conversion.buildStickerSet(pack)
+    }
+
+    async answerCallbackQuery(callback_query_id, options = {}) {
+        options.callback_query_id = callback_query_id
+        let ret = await this.run('answerCallbackQuery', options)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
     }
 
     // Helpers
@@ -319,7 +537,8 @@ class Bot extends lib.TdClientActor {
     }
 
     async _initChatIfNeeded(chat_id) {
-        // See https://github.com/tdlib/td/issues/263
+        // See https://github.com/tdlib/td/issues/263#issuecomment-395968079
+        if (this._inited_chat.has(chat_id)) return
         try {
             await this.run('getChat', {
                 chat_id
@@ -331,7 +550,7 @@ class Bot extends lib.TdClientActor {
                 })
                 await this.run('createSupergroupChat', {
                     supergroup_id: Math.abs(chat_id) - Math.pow(10, 12),
-                    force: true
+                    force: false
                 })
             } else if (chat_id < 0) {
                 await this.run('getBasicGroup', {
@@ -339,7 +558,7 @@ class Bot extends lib.TdClientActor {
                 })
                 await this.run('createBasicGroupChat', {
                     basic_group_id: Math.abs(chat_id),
-                    force: true
+                    force: false
                 })
             } else {
                 await this.run('getUser', {
@@ -347,10 +566,11 @@ class Bot extends lib.TdClientActor {
                 })
                 await this.run('createPrivateChat', {
                     user_id: chat_id,
-                    force: true
+                    force: false
                 })
             }
         }
+        this._inited_chat.add(chat_id)
         return
     }
 }
