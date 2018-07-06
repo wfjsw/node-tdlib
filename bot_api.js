@@ -101,7 +101,7 @@ class Bot extends lib.TdClientActor {
 
         }
         if (options.caption)
-            media.caption = this._generateFormattedText(options.caption, options.parse_mode)
+            media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
         return this._sendMessage(chat_id, media, options)
     }
 
@@ -124,7 +124,16 @@ class Bot extends lib.TdClientActor {
     }
 
     async editMessageLiveLocation(latitude, longitude, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
         if (options.chat_id && options.message_id) {
+            options.chat_id = this._checkChatId(options.chat_id)
+            await this._initChatIfNeeded(options.chat_id)
+            let orig_msg = this.run('getMessage', {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id)
+            })
+            if (orig_msg.content['@type'] != 'messageLocation') throw new Error('Target message is not a live location.')
+            if (orig_msg.content.expires_in <= 0) throw new Error('Target live location is expired.')
             let _opt = {
                 chat_id: options.chat_id,
                 message_id: _util.get_tdlib_message_id(options.message_id),
@@ -135,6 +144,10 @@ class Bot extends lib.TdClientActor {
             }
             if (options.reply_markup) {
                 _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            } else if (options.preserve_reply_markup) {
+                if (orig_msg.reply_markup) {
+                    _opt.reply_markup = orig_msg.reply_markup
+                }
             }
             let ret = await this.run('editMessageLiveLocation', _opt)
             return _util.buildMessage(ret)
@@ -159,7 +172,16 @@ class Bot extends lib.TdClientActor {
     }
 
     async stopMessageLiveLocation(options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
         if (options.chat_id && options.message_id) {
+            options.chat_id = this._checkChatId(options.chat_id)
+            await this._initChatIfNeeded(options.chat_id)
+            let orig_msg = this.run('getMessage', {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id)
+            })
+            if (orig_msg.content['@type'] != 'messageLocation') throw new Error('Target message is not a live location.')
+            if (orig_msg.content.expires_in <= 0) throw new Error('Target live location is expired.')
             let _opt = {
                 chat_id: options.chat_id,
                 message_id: _util.get_tdlib_message_id(options.message_id),
@@ -167,6 +189,10 @@ class Bot extends lib.TdClientActor {
             }
             if (options.reply_markup) {
                 _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            } else if (options.preserve_reply_markup) {
+                if (orig_msg.reply_markup) {
+                    _opt.reply_markup = orig_msg.reply_markup
+                }
             }
             let ret = await this.run('editMessageLiveLocation', _opt)
             return _util.buildMessage(ret)
@@ -190,7 +216,7 @@ class Bot extends lib.TdClientActor {
     async sendVenue(chat_id, lat, long, title, address, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         let media = {
-            venue:{
+            venue: {
                 '@type': 'inputMessageVenue',
                 location: {
                     '@type': 'location',
@@ -221,6 +247,7 @@ class Bot extends lib.TdClientActor {
 
     async sendChatAction(chat_id, action, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
         let opt = {
             chat_id,
@@ -246,15 +273,16 @@ class Bot extends lib.TdClientActor {
 
     async kickChatMember(chat_id, user_id, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
         let opt = {
             chat_id,
             user_id,
             status: {
-                '@type': 'chatMemberStatusBanned'
+                '@type': options.kick_only ? 'chatMemberStatusLeft' : 'chatMemberStatusBanned'
             }
         }
-        if (options.until_date) {
+        if (options.until_date && !options.kick_only) {
             opt.status.banned_until_date = options.until_date
         }
         let ret = await this.run('setChatMemberStatus', opt)
@@ -264,6 +292,7 @@ class Bot extends lib.TdClientActor {
 
     async unbanChatMember(chat_id, user_id, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
         let opt = {
             chat_id,
@@ -279,6 +308,7 @@ class Bot extends lib.TdClientActor {
 
     async restrictChatMember(chat_id, user_id, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
         let opt = {
             chat_id,
@@ -294,7 +324,7 @@ class Bot extends lib.TdClientActor {
         if ('can_send_media_messages' in options) opt.status.can_send_media_messages = options.can_send_media_messages
         if ('can_send_other_messages' in options) opt.status.can_send_other_messages = options.can_send_other_messages
         if ('can_add_web_page_previews' in options) opt.status.can_add_web_page_previews = options.can_add_web_page_previews
-        
+
         let ret = await this.run('setChatMemberStatus', opt)
         if (ret['@type'] = 'ok') return true
         else throw ret
@@ -302,6 +332,7 @@ class Bot extends lib.TdClientActor {
 
     async promoteChatMember(chat_id, user_id, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
         let opt = {
             chat_id,
@@ -324,6 +355,116 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
+    async exportChatInviteLink(chat_id, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        await this._initChatIfNeeded(chat_id)
+        let opt = {
+            chat_id
+        }
+        let ret = await this.run('generateChatInviteLink', opt)
+        return ret.invite_link
+    }
+
+    async setChatPhoto(chat_id, photo, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        await this._initChatIfNeeded(chat_id)
+        let opt = {
+            chat_id,
+            photo: this._prepareUploadFile(photo)
+        }
+        let ret = await this.run('setChatPhoto', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async deleteChatPhoto(chat_id, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        await this._initChatIfNeeded(chat_id)
+        let opt = {
+            chat_id,
+            photo: this._prepareUploadFile(0)
+        }
+        let ret = await this.run('setChatPhoto', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async setChatTitle(chat_id, title, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        await this._initChatIfNeeded(chat_id)
+        let opt = {
+            chat_id,
+            title
+        }
+        let ret = await this.run('setChatTitle', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async setChatDescription(chat_id, description, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        if (chat_id > -Math.pow(10, 12)) throw new Error('Not a supergroup or channel.')
+        await this._initChatIfNeeded(chat_id)
+        let opt = {
+            supergroup_id: Math.abs(chat_id) - Math.pow(10, 12),
+            description
+        }
+        let ret = await this.run('setSupergroupDescription', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async pinChatMessage(chat_id, message_id, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        if (chat_id > -Math.pow(10, 12)) throw new Error('Not a supergroup or channel.')
+        await this._initChatIfNeeded(chat_id)
+        message_id = _util.get_tdlib_message_id(message_id)
+        let opt = {
+            supergroup_id: Math.abs(chat_id) - Math.pow(10, 12),
+            message_id,
+            disable_notification: !!options.disable_notification
+        }
+        let ret = await this.run('pinSupergroupMessage', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async unpinChatMessage(chat_id, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        if (chat_id > -Math.pow(10, 12)) throw new Error('Not a supergroup or channel.')
+        await this._initChatIfNeeded(chat_id)
+        let opt = {
+            supergroup_id: Math.abs(chat_id) - Math.pow(10, 12),
+        }
+        let ret = await this.run('uninSupergroupMessage', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async leaveChat(chat_id, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        await this._initChatIfNeeded(chat_id)
+        let me = await this.run('getMe', {})
+        let opt = {
+            chat_id,
+            user_id: me.id,
+            status: {
+                '@type': 'chatMemberStatusLeft'
+            }
+        }
+        let ret = await this.run('setChatMemberStatus', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
     async getUser(user_id) {
         if (!this.ready) throw new Error('Not ready.')
         return this._getUser(user_id)
@@ -332,6 +473,76 @@ class Bot extends lib.TdClientActor {
     async getChat(chat_id) {
         if (!this.ready) throw new Error('Not ready.')
         return this._getChat(chat_id, true)
+    }
+
+    async getChatAdministrators(chat_id) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        await this._initChatIfNeeded(chat_id)
+        let opt = {
+            chat_id
+        }
+        let ret = await this.run('getChatAdministrators', opt)
+        let admins = []
+        for (let a of ret.user_ids) {
+            admins.push(await this._getChatMember(chat_id, a))
+        }
+        return admins
+    }
+
+    async getChatMembersCount(chat_id) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        await this._initChatIfNeeded(chat_id)
+        let chat = await this._getChat(chat_id, false)
+        return chat.member_count
+    }
+
+    async getChatMember(chat_id, user_id) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        await this._initChatIfNeeded(chat_id)
+        return this._getChatMember(chat_id, user_id)
+    }
+
+    async setChatStickerSet(chat_id, sticker_set) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        await this._initChatIfNeeded(chat_id)
+        let pack_id
+        if (isNaN(sticker_set)) {
+            // is Name
+            pack_id = await this.run('searchStickerSet', {
+                sticker_set
+            })
+            pack_id = pack_id.id
+        } else {
+            // is ID
+            pack_id = sticker_set
+        }
+
+        let opt = {
+            supergroup_id: Math.abs(chat_id) - Math.pow(10, 12),
+            sticker_set_id: pack_id
+        }
+
+        let ret = await this.run('setSupergroupStickerSet', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async deleteChatStickerSet(chat_id) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        await this._initChatIfNeeded(chat_id)
+        let opt = {
+            supergroup_id: Math.abs(chat_id) - Math.pow(10, 12),
+            sticker_set_id: 0
+        }
+
+        let ret = await this.run('setSupergroupStickerSet', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
     }
 
     async getStickerSet(name) {
@@ -357,6 +568,149 @@ class Bot extends lib.TdClientActor {
         if (ret['@type'] = 'ok') return true
         else throw ret
     }
+
+    async editMessageText(text, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        if (options.chat_id && options.message_id) {
+            options.chat_id = this._checkChatId(options.chat_id)
+            await this._initChatIfNeeded(options.chat_id)
+            let orig_msg = this.run('getMessage', {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id)
+            })
+            if (orig_msg.content['@type'] != 'messageText') throw new Error('Target message is not a text message.')
+            let _opt = {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id),
+                input_message_content: {
+                    '@type': 'inputMessageText',
+                    text: await this._generateFormattedText(text, options.parse_mode),
+                    disable_web_page_preview: !!options.disable_web_page_preview
+                }
+            }
+            if (options.reply_markup) {
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            } else if (options.preserve_reply_markup) {
+                if (orig_msg.reply_markup) {
+                    _opt.reply_markup = orig_msg.reply_markup
+                }
+            }
+            let ret = await this.run('editMessageText', _opt)
+            return _util.buildMessage(ret)
+        } else if (options.inline_message_id) {
+            let _opt = {
+                inline_message_id: options.inline_message_id,
+                input_message_content: {
+                    '@type': 'inputMessageText',
+                    text: await this._generateFormattedText(text, options.parse_mode),
+                    disable_web_page_preview: !!options.disable_web_page_preview
+                }
+            }
+            if (options.reply_markup) {
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            }
+            let ret = await this.run('editInlineMessageText', _opt)
+            if (ret['@type'] == 'ok')
+                return true
+            else throw ret
+        } else {
+            throw new Error('Please specify chat_id and message_id or inline_message_id.')
+        }
+    }
+
+    async editMessageCaption(caption, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        if (options.chat_id && options.message_id) {
+            options.chat_id = this._checkChatId(options.chat_id)
+            await this._initChatIfNeeded(options.chat_id)
+            let orig_msg = this.run('getMessage', {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id)
+            })
+            let _opt = {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id),
+                caption: await this._generateFormattedText(caption, options.parse_mode)
+            }
+            if (options.reply_markup) {
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            } else if (options.preserve_reply_markup) {
+                if (orig_msg.reply_markup) {
+                    _opt.reply_markup = orig_msg.reply_markup
+                }
+            }
+            let ret = await this.run('editMessageCaption', _opt)
+            return _util.buildMessage(ret)
+        } else if (options.inline_message_id) {
+            let _opt = {
+                inline_message_id: options.inline_message_id,
+                caption: await this._generateFormattedText(caption, options.parse_mode)
+            }
+            if (options.reply_markup) {
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            }
+            let ret = await this.run('editInlineMessageCaption', _opt)
+            if (ret['@type'] == 'ok')
+                return true
+            else throw ret
+        } else {
+            throw new Error('Please specify chat_id and message_id or inline_message_id.')
+        }
+    }
+
+    async editMessageReplyMarkup(reply_markup, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        if (options.chat_id && options.message_id) {
+            options.chat_id = this._checkChatId(options.chat_id)
+            await this._initChatIfNeeded(options.chat_id)
+            let _opt = {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id),
+            }
+
+            if (options.reply_markup) {
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            }
+            let ret = await this.run('editMessageReplyMarkup', _opt)
+            return _util.buildMessage(ret)
+        } else if (options.inline_message_id) {
+            let _opt = {
+                inline_message_id: options.inline_message_id,
+            }
+            if (options.reply_markup) {
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            }
+            let ret = await this.run('editInlineMessageReplyMarkup', _opt)
+            if (ret['@type'] == 'ok')
+                return true
+            else throw ret
+        } else {
+            throw new Error('Please specify chat_id and message_id or inline_message_id.')
+        }
+    }
+
+    async deleteMessage(chat_id, message_ids, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = this._checkChatId(chat_id)
+        await this._initChatIfNeeded(chat_id)
+        if (!Array.isArray(message_ids)) message_ids = [message_ids]
+        message_ids = message_ids.map((id) => _util.get_tdlib_message_id(id))
+        let _opt = {
+            chat_id: options.chat_id,
+            message_ids,
+            revoke: true
+        }
+        let ret = await this.run('deleteMessages', _opt)
+        if (ret['@type'] == 'ok')
+            return true
+    }
+
+    /*async answerInlineQuery(inline_query_id, results, options = {}) {
+        options.callback_query_id = callback_query_id
+        let ret = await this.run('answerCallbackQuery', options)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }*/
 
     // Helpers
 
@@ -387,6 +741,16 @@ class Bot extends lib.TdClientActor {
             message_id: _mid
         })
         return this._getMessage(_msg)
+    }
+
+    async _getChatMember(chat_id, user_id) {
+        chat_id = await this._checkChatId(chat_id)
+        user_id = await this._checkChatId(user_id)
+        let cm = await this.run('getChatMember', {
+            chat_id,
+            user_id
+        })
+        return this.conversion.buildChatMember(cm)
     }
 
     async _getMessage(message, follow_replies_level) {
