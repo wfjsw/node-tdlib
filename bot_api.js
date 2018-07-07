@@ -94,15 +94,128 @@ class Bot extends lib.TdClientActor {
         }
     }
 
-    async sendPhoto(chat_id, photo, options = {}, { file_name }) {
+    async sendPhoto(chat_id, photo, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         let media = {
             '@type': 'inputMessagePhoto',
+            photo: await this._prepareUploadFile(photo)
+        }
+        if (options.caption)
+            media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
+        if (options.ttl)
+            media.ttl = options.ttl
+        return this._sendMessage(chat_id, media, options)
+    }
 
+    async sendAudio(chat_id, audio, options = {}, { filename }) {
+        if (!this.ready) throw new Error('Not ready.')
+        let media = {
+            '@type': 'inputMessageAudio',
+            audio: await this._prepareUploadFile(audio, filename)
+        }
+        if (options.caption)
+            media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
+        if (options.duration) 
+            media.duration = options.duration
+        if (options.title)
+            media.title = options.title
+        if (options.performer) 
+            media.performer = options.performer
+        return this._sendMessage(chat_id, media, options)
+    }
+
+    async sendDocument(chat_id, document, options = {}, { filename }) {
+        if (!this.ready) throw new Error('Not ready.')
+        let media = {
+            '@type': 'inputMessageDocument',
+            document: await this._prepareUploadFile(document, filename)
         }
         if (options.caption)
             media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
         return this._sendMessage(chat_id, media, options)
+    }
+
+    async sendVideo(chat_id, video, options = {}, { filename }) {
+        if (!this.ready) throw new Error('Not ready.')
+        let media = {
+            '@type': 'inputMessageVideo',
+            video: await this._prepareUploadFile(video, filename)
+        }
+        if (options.caption)
+            media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
+        if (options.duration)
+            media.duration = options.duration
+        if (options.width)
+            media.width = options.width
+        if (options.height)
+            media.height = options.height
+        if ('supports_streaming' in options)
+            media.supports_streaming = options.supports_streaming
+        if (options.ttl)
+            media.ttl = options.ttl
+        return this._sendMessage(chat_id, media, options)
+    }
+
+    async sendVoice(chat_id, voice, options = {}, { filename }) {
+        if (!this.ready) throw new Error('Not ready.')
+        let media = {
+            '@type': 'inputMessageVoiceNote',
+            voice_note: await this._prepareUploadFile(voice, filename)
+        }
+        if (options.caption)
+            media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
+        if (options.duration)
+            media.duration = options.duration
+        return this._sendMessage(chat_id, media, options)
+    }
+
+    async sendVideoNote(chat_id, video_note, options = {}, { filename }) {
+        if (!this.ready) throw new Error('Not ready.')
+        let media = {
+            '@type': 'inputMessageVideoNote',
+            video_note: await this._prepareUploadFile(video_note, filename)
+        }
+        if (options.caption)
+            media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
+        if (options.duration)
+            media.duration = options.duration
+        if (options.length)
+            media.length = options.length
+        return this._sendMessage(chat_id, media, options)
+    }
+
+    async sendMediaGroup(chat_id, medias, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let _medias = []
+        for (let md of medias) {
+            if (md.type == 'photo') {
+                let _md = {
+                    '@type': 'inputMessagePhoto',
+                    photo: await this._prepareUploadFile(md.media)
+                }      
+                if (md.caption)
+                    _md.caption = await this._generateFormattedText(md.caption, md.parse_mode)
+                _medias.push(_md)
+            } else if (md.type == 'video') {
+                let _md = {
+                    '@type': 'inputMessageVideo',
+                    video: await this._prepareUploadFile(_md.media)
+                }
+                if (md.caption)
+                    _md.caption = await this._generateFormattedText(md.caption, md.parse_mode)
+                if (md.duration)
+                    _md.duration = md.duration
+                if (md.width)
+                    _md.width = md.width
+                if (md.height)
+                    _md.height = md.height
+                if ('supports_streaming' in md)
+                    _md.supports_streaming = md.supports_streaming
+                _medias.push(_md)
+            }
+        }
+        if (_medias.length < 2 || _medias.length > 10) throw new Error('Medias must include 2-10 items.')
+        return this._sendMessageAlbum(chat_id, _medias, options)
     }
 
     async sendLocation(chat_id, lat, long, options = {}) {
@@ -232,7 +345,7 @@ class Bot extends lib.TdClientActor {
         return this._sendMessage(chat_id, media, options)
     }
 
-    async sendVenue(chat_id, phone_number, first_name, options = {}) {
+    async sendContact(chat_id, phone_number, first_name, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         let media = {
             contact: {
@@ -545,23 +658,6 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
-    async getStickerSet(name) {
-        if (!this.ready) throw new Error('Not ready.')
-        let pack
-        if (isNaN(name)) {
-            // is Name
-            pack = await this.run('searchStickerSet', {
-                name
-            })
-        } else {
-            // is ID
-            pack = await this.run('getStickerSet', {
-                set_id: name
-            })
-        }
-        return this.conversion.buildStickerSet(pack)
-    }
-
     async answerCallbackQuery(callback_query_id, options = {}) {
         options.callback_query_id = callback_query_id
         let ret = await this.run('answerCallbackQuery', options)
@@ -703,6 +799,106 @@ class Bot extends lib.TdClientActor {
         let ret = await this.run('deleteMessages', _opt)
         if (ret['@type'] == 'ok')
             return true
+    }
+
+    async sendSticker(chat_id, sticker, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let media = {
+            '@type': 'inputMessageSticker',
+            sticker: await this._prepareUploadFile(sticker)
+        }
+        return this._sendMessage(chat_id, media, options)
+    }
+
+    async getStickerSet(name) {
+        if (!this.ready) throw new Error('Not ready.')
+        let pack
+        if (isNaN(name)) {
+            // is Name
+            pack = await this.run('searchStickerSet', {
+                name
+            })
+        } else {
+            // is ID
+            pack = await this.run('getStickerSet', {
+                set_id: name
+            })
+        }
+        return this.conversion.buildStickerSet(pack)
+    }
+
+    async uploadStickerFile(user_id, png_sticker, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let opt = {
+            user_id,
+            png_sticker: await this._prepareUploadFile(png_sticker)
+        }
+        let ret = await this.run('uploadStickerFile', opt)
+        return this.conversion.buildFile(ret)
+    }
+
+    // incompability
+    async creteNewStickerSet(user_id, name, title, stickers, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let opt = {
+            user_id,
+            name,
+            title,
+            is_masks: !!options.contains_masks
+        }
+        let stks = []
+        for (let st of stickers) {
+            stks.push({
+                png_sticker: await this._prepareUploadFile(st.png_sticker),
+                emojis: st.emojis,
+                mask_position: await this.conversion.buildTdlibMaskPosition(st.mask_position)
+            })
+        }
+        opt.stickers = stks
+        let ret = await this.run('createNewStickerSet', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async addStickerToSet(user_id, name, png_sticker, emojis, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let opt = {
+            user_id,
+            name,
+            sticker: {
+                png_sticker: await this._prepareUploadFile(png_sticker),
+                emojis: emojis
+            }
+        }
+        if (options.mask_position) {
+            opt.sticker.mask_position = await this.conversion.buildTdlibMaskPosition(options.mask_position)
+        }
+        let ret = await this.run('addStickerToSet', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async setStickerPositionInSet(sticker, position, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let opt = {
+            sticker: await this._prepareUploadFile(sticker),
+            position
+        }
+        if (opt.sticker['@type'] != 'inputFileRemote') throw new Error('Only sticker file_id is acceptable.')
+        let ret = await this.run('setStickerPositionInSet', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async deleteStickerFromSet(sticker, position, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let opt = {
+            sticker: await this._prepareUploadFile(sticker),
+        }
+        if (opt.sticker['@type'] != 'inputFileRemote') throw new Error('Only sticker file_id is acceptable.')
+        let ret = await this.run('removeStickerFromSet', opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
     }
 
     /*async answerInlineQuery(inline_query_id, results, options = {}) {
@@ -876,6 +1072,32 @@ class Bot extends lib.TdClientActor {
         return new Promise(async (rs, rj) => {
             self.once(`_msgSent:${old_msg.id}`, async (update) => {
                 rs(this._getMessage(update.message))
+            })
+            this.once(`_msgFail:${old_msg.id}`, async (update) => {
+                rj(update)
+            })
+        })
+    }
+
+    async _sendMessageAlbum(chat_id, contents, options = {}) {
+        let self = this
+        chat_id = await this._checkChatId(chat_id)
+        let opt = {
+            chat_id,
+            reply_to_message_id: _util.get_tdlib_message_id(options.reply_to_message_id || 0),
+            disable_notification: !!options.disable_notification,
+            from_background: true,
+            input_message_contents: contents
+        }
+        await self._initChatIfNeeded(chat_id)
+        let old_msg = await self.run('sendMessageAlbum', opt)
+        return new Promise(async (rs, rj) => {
+            self.once(`_msgSent:${old_msg.id}`, async (update) => {
+                let msgs = []
+                for (let m of update.messages) {
+                    msgs.push(await this._getMessage(m))
+                }
+                rs(msgs)
             })
             this.once(`_msgFail:${old_msg.id}`, async (update) => {
                 rj(update)

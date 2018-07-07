@@ -7,6 +7,13 @@ const maskpoint_mirror_table = new Map([
     ['maskPointMouth', 'mouth']
 ])
 
+const maskpoint_mirror_table_reversed = new Map([
+    ['chin', 'maskPointChin'],
+    ['eyes', 'maskPointEyes'],
+    ['forehead', 'maskPointForehead'],
+    ['mouth', 'maskPointMouth']
+])
+
 const chat_member_status_mirror_table = new Map([
     ['chatMemberStatusAdministrator', 'administrator'],
     ['chatMemberStatusBanned', 'kicked'],
@@ -421,6 +428,9 @@ class BotTypeConversion {
             case 'messageWebsiteConnected':
                 bot_message.connected_website = message.content.domain_name
                 break
+            case 'messageScreenshotTaken': 
+                bot_message.screenshot_taken = true
+                break
         }
         if (message.content.caption) {
             if (message.content.caption.text) {
@@ -603,6 +613,13 @@ class BotTypeConversion {
         return _doc
     }
 
+    async buildFile(file) {
+        return {
+            file_id: file.remote.id,
+            file_size: file.size
+        }
+    }
+
     async buildGame(game) {
         let _game = {
             id: game.id,
@@ -629,6 +646,18 @@ class BotTypeConversion {
     async buildMaskPosition(mask_position) {
         return {
             point: maskpoint_mirror_table.get(mask_position.point['@type']),
+            x_shift: mask_position.x_shift,
+            y_shift: mask_position.y_shift,
+            scale: mask_position.scale
+        }
+    }
+
+    async buildTdlibMaskPosition(mask_position) {
+        return {
+            '@type': 'maskPosition',
+            point: {
+                '@type': maskpoint_mirror_table_reversed.get(mask_position.point)
+            },
             x_shift: mask_position.x_shift,
             y_shift: mask_position.y_shift,
             scale: mask_position.scale
