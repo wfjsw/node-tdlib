@@ -23,6 +23,7 @@ class Bot extends lib.TdClientActor {
             use_chat_info_database: false,
             use_file_database: false
         })
+        this._identifier = identifier
         let self = this
         this.ready = false
         this._inited_chat = new Set()
@@ -47,6 +48,9 @@ class Bot extends lib.TdClientActor {
         })
         this.on('__updateMessageEdited', (update) => {
             this._processIncomingEdit.call(self, update)
+        })
+        this.on('__updateNewCallbackQuery', (update) => {
+            this._processIncomingCallbackQuery.call(self, update)
         })
         this.once('ready', () => this.ready = true)
         this.conversion = new (require('./bot_types'))(this)
@@ -239,9 +243,9 @@ class Bot extends lib.TdClientActor {
     async editMessageLiveLocation(latitude, longitude, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         if (options.chat_id && options.message_id) {
-            options.chat_id = this._checkChatId(options.chat_id)
+            options.chat_id = await this._checkChatId(options.chat_id)
             await this._initChatIfNeeded(options.chat_id)
-            let orig_msg = this.run('getMessage', {
+            let orig_msg = await this.run('getMessage', {
                 chat_id: options.chat_id,
                 message_id: _util.get_tdlib_message_id(options.message_id)
             })
@@ -287,9 +291,9 @@ class Bot extends lib.TdClientActor {
     async stopMessageLiveLocation(options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         if (options.chat_id && options.message_id) {
-            options.chat_id = this._checkChatId(options.chat_id)
+            options.chat_id = await this._checkChatId(options.chat_id)
             await this._initChatIfNeeded(options.chat_id)
-            let orig_msg = this.run('getMessage', {
+            let orig_msg = await this.run('getMessage', {
                 chat_id: options.chat_id,
                 message_id: _util.get_tdlib_message_id(options.message_id)
             })
@@ -659,7 +663,24 @@ class Bot extends lib.TdClientActor {
     }
 
     async answerCallbackQuery(callback_query_id, options = {}) {
-        options.callback_query_id = callback_query_id
+        /* The older method signature (in/before v0.27.1) was answerCallbackQuery(callbackQueryId, text, showAlert).
+         * We need to ensure backwards-compatibility while maintaining
+         * consistency of the method signatures throughout the library */
+        if (typeof options !== 'object') {
+            options = {
+                callback_query_id: arguments[0],
+                text: arguments[1],
+                show_alert: arguments[2],
+            };
+        }
+        /* The older method signature (in/before v0.29.0) was answerCallbackQuery([options]).
+         * We need to ensure backwards-compatibility while maintaining
+         * consistency of the method signatures throughout the library. */
+        if (typeof callback_query_id === 'object') {
+            options = callback_query_id;
+        } else {
+            options.callback_query_id = callback_query_id;
+        }
         let ret = await this.run('answerCallbackQuery', options)
         if (ret['@type'] = 'ok') return true
         else throw ret
@@ -668,9 +689,9 @@ class Bot extends lib.TdClientActor {
     async editMessageText(text, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         if (options.chat_id && options.message_id) {
-            options.chat_id = this._checkChatId(options.chat_id)
+            options.chat_id = await this._checkChatId(options.chat_id)
             await this._initChatIfNeeded(options.chat_id)
-            let orig_msg = this.run('getMessage', {
+            let orig_msg = await this.run('getMessage', {
                 chat_id: options.chat_id,
                 message_id: _util.get_tdlib_message_id(options.message_id)
             })
@@ -717,9 +738,9 @@ class Bot extends lib.TdClientActor {
     async editMessageCaption(caption, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         if (options.chat_id && options.message_id) {
-            options.chat_id = this._checkChatId(options.chat_id)
+            options.chat_id = await this._checkChatId(options.chat_id)
             await this._initChatIfNeeded(options.chat_id)
-            let orig_msg = this.run('getMessage', {
+            let orig_msg = await this.run('getMessage', {
                 chat_id: options.chat_id,
                 message_id: _util.get_tdlib_message_id(options.message_id)
             })
@@ -757,7 +778,7 @@ class Bot extends lib.TdClientActor {
     async editMessageReplyMarkup(reply_markup, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         if (options.chat_id && options.message_id) {
-            options.chat_id = this._checkChatId(options.chat_id)
+            options.chat_id = await this._checkChatId(options.chat_id)
             await this._initChatIfNeeded(options.chat_id)
             let _opt = {
                 chat_id: options.chat_id,
@@ -787,7 +808,7 @@ class Bot extends lib.TdClientActor {
 
     async deleteMessage(chat_id, message_ids, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
-        chat_id = this._checkChatId(chat_id)
+        chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
         if (!Array.isArray(message_ids)) message_ids = [message_ids]
         message_ids = message_ids.map((id) => _util.get_tdlib_message_id(id))
@@ -930,11 +951,15 @@ class Bot extends lib.TdClientActor {
     }
 
     // Note: it use API id. Don't forget to convert
-    async _getMessageById(chat_id, message_id) {
+    async _getMessageByAPIId(chat_id, message_id) {
         let _mid = _util.get_tdlib_message_id(message_id)
+        return this._getMessageByTdlibId(chat_id, _mid)
+    }
+
+    async _getMessageByTdlibId(chat_id, message_id) {
         let _msg = await this.run('getMessage', {
             chat_id,
-            message_id: _mid
+            message_id
         })
         return this._getMessage(_msg)
     }
@@ -998,7 +1023,7 @@ class Bot extends lib.TdClientActor {
             return new Promise((rs, rj) => {
                 // TODO: find a way to set file metas
                 // Issue: https://github.com/tdlib/td/issues/290
-                let file_path = _util.generateTempFileLocation(this._instance_id)
+                let file_path = _util.generateTempFileLocation(this._identifier)
                 let write_stream = fs.createWriteStream(file_path)
                 write_stream.on('error', rj)
                 write_stream.on('finish', () => {
@@ -1019,7 +1044,7 @@ class Bot extends lib.TdClientActor {
                 file.pipe(write_stream)
             })
         } else if (Buffer.isBuffer(file)) {
-            let file_path = _util.generateTempFileLocation(this._instance_id)
+            let file_path = _util.generateTempFileLocation(this._identifier)
             await fsp.writeFile(file_path, file)
             if (file_name) {
                 return {
@@ -1035,7 +1060,13 @@ class Bot extends lib.TdClientActor {
                 }
             }
         } else if (isNaN(file)) {
-            if (await _util.fileExists(file)) {
+            if (file.match(/^http:\/\/|^https:\/\//)) {
+                return {
+                    '@type': 'inputFileGenerated',
+                    original_path: file,
+                    conversion: '#url#'
+                }
+            } else if (await _util.fileExists(file)) {
                 return {
                     '@type': 'inputFileLocal',
                     path: path.resolve(file)
@@ -1120,6 +1151,27 @@ class Bot extends lib.TdClientActor {
         if (_msg.is_outgoing) return
         let msg = await this._getMessage(_msg)
         this.emit('edited_message', msg)
+    }
+
+    async _processIncomingCallbackQuery(update) {
+        let _from = await this._getUser(update.sender_user_id, false)
+        let evt = {
+            id: update.id,
+            from: _from,
+            chat_instance: update.chat_instance,
+        }
+        if (update.chat_id && update.message_id) {
+            evt.message = await this._getMessageByTdlibId(update.chat_id, update.message_id)
+        }
+        switch (update.payload['@type']) {
+            case 'callbackQueryPayloadData': 
+                evt.data = Buffer.from(update.payload.data, 'base64').toString('utf8')
+                break
+            case 'callbackQueryPayloadGame':
+                evt.game_short_name = update.payload.game_short_name
+                break
+        }
+        this.emit('callback_query', evt)
     }
 
     async _initChatIfNeeded(chat_id) {

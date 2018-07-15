@@ -6,7 +6,7 @@ const path = require('path')
 
 exports.generateRpcReqId = () => crypto.randomBytes(4).toString('hex')
 
-exports.generateTempFileLocation = (instance_name = 'unknown') => path.join(os.tmpdir(), `tdlib-${instance_name.normalize()}-${crypto.randomBytes(5).toString('hex')}`)
+exports.generateTempFileLocation = (instance_name = 'unknown') => path.join(os.tmpdir(), `tdlib-${instance_name.toString().normalize()}-${crypto.randomBytes(5).toString('hex')}`)
 
 exports.get_tdlib_message_id = (msg_id) => {
     return parseInt(msg_id) * Math.pow(2, 20)
@@ -44,7 +44,7 @@ exports.parseReplyMarkup = (replymarkup) => {
         }
         for (let r of replymarkup.inline_keyboard) {
             let colc = []
-            for (let c of replymarkup.inline_keyboard) {
+            for (let c of r) {
                 let col = {
                     '@type': 'inlineKeyboardButton',
                     text: c.text
@@ -57,7 +57,7 @@ exports.parseReplyMarkup = (replymarkup) => {
                 } else if ('callback_data' in c) {
                     col.type = {
                         '@type': 'inlineKeyboardButtonTypeCallback',
-                        data: Buffer.from(c.data, 'utf8').toString('base64')
+                        data: Buffer.from(c.callback_data, 'utf8').toString('base64')
                     }
                 } else if ('switch_inline_query' in c) {
                     col.type = {

@@ -636,6 +636,105 @@ class BotTypeConversion {
         return _game
     }
 
+    async buildInlineQuery(iq) {
+        let _iq = {
+            id: iq.id,
+            from: await this.buildUser(await this.client.run('getUser', { user_id: iq.sender_user_id }), false),
+            query: iq.query,
+            offset: iq.offset
+        }
+        if (iq.user_location) {
+            _iq.location = await this.buildLocation(iq.user_location)
+        }
+        return _iq
+    }
+
+    async buildTdlibInlineQueryResultAnimatedGif(gif) {
+        let _gif = {
+            id: gif.id,
+        }
+        if (gif.gif_url) {
+            _gif.gif_url = gif.gif_url
+            _gif.thumb_url = gif.thumb_url || gif.gif_url
+        } else if (gif.gif_file_id) {
+            _gif.gif_url = gif.gif_file_id
+        }
+        if (gif.gif_width) {
+            _gif.gif_width = gif.gif_width
+        }
+        if (gif.gif_height) {
+            _gif.gif_height = gif.gif_height
+        }
+        if (gif.gif_duration) {
+            _gif.gif_duration = gif.gif_duration
+        }
+        if (gif.title) {
+            _gif.title = gif.title
+        }
+        if (gif.caption) {
+            _gif.caption = await this.client._generateFormattedText(gif.caption, gif.parse_mode)
+        }
+        if (gif.reply_markup) {
+            _gif.reply_markup = _util.parseReplyMarkup(gif.reply_markup)
+        }
+        if (gif.input_message_content) {
+            _gif.input_message_content = await this.buildTdlibInlineInputMessageContent(gif.input_message_content)
+        } else {
+            _gif.input_message_content = {
+                '@type': 'inputMessageAnimation',
+                //animation: 
+            }
+        }
+    }
+
+    async buildTdlibInlineInputMessageContent(imc, caption) {
+        if ('message_text' in imc) {
+            return {
+                '@type': 'inputMessageText',
+                text: await this.client._generateFormattedText(imc.message_text, imc.parse_mode),
+                disable_web_page_preview: !!imc.disable_web_page_preview
+            }
+        } else if ('latitude' in imc && 'longitude' in imc && 'title' in imc && 'address' in imc) {
+            let ret = {
+                '@type': 'inputMessageVenue',
+                venue: {
+                    location: {
+                        latitude: imc.latitude,
+                        longitude: imc.longitude
+                    },
+                    title: imc.title,
+                    address: imc.address,
+                    provider: 'foursquare',
+                    id: imc.foursquare_id
+                }
+            }
+            return ret
+        } else if ('latitude' in imc && 'longitude' in imc) {
+            let ret = {
+                '@type': 'inputMessageLocation',
+                location: {
+                    latitude: imc.latitude,
+                    longitude: imc.longitude
+                }
+            }
+            if (imc.live_period >= 60 && imc.live_period <= 86400) {
+                ret.live_period = imc.live_period
+            } else {
+                ret.live_period = 0
+            }
+            return ret
+        } else if ('phone_number' in imc && 'first_name' in imc) {
+            return {
+                '@type': 'inputMessageContact',
+                contact: {
+                    phone_number: imc.phone_number,
+                    first_name: imc.first_name,
+                    last_name: imc.last_name || ''
+                }
+            }
+        }
+    }
+
     async buildLocation(location) {
         return {
             latitude: location.latitude,
