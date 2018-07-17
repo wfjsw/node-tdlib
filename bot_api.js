@@ -49,8 +49,14 @@ class Bot extends lib.TdClientActor {
         this.on('__updateMessageEdited', (update) => {
             this._processIncomingEdit.call(self, update)
         })
+        this.on('__updateNewInlineQuery', (update) => {
+            this._processIncomingInlineQuery.call(self, update)
+        })
         this.on('__updateNewCallbackQuery', (update) => {
             this._processIncomingCallbackQuery.call(self, update)
+        })
+        this.on('__updateNewChosenInlineResult', (update) => {
+            this._processIncomingChosenInlineResult.call(self, update)
         })
         this.once('ready', () => this.ready = true)
         this.conversion = new (require('./bot_types'))(this)
@@ -922,12 +928,98 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
-    /*async answerInlineQuery(inline_query_id, results, options = {}) {
-        options.callback_query_id = callback_query_id
-        let ret = await this.run('answerCallbackQuery', options)
+    async answerInlineQuery(inline_query_id, results, options = {}) {
+        options.inline_query_id = inline_query_id
+        options.results = []
+        for (let iqr of results) {
+            results.push(await this.conversion.buildTdlibInlineQueryResult(iqr))
+        }
+        let ret = await this.run('answerInlineQuery', options)
         if (ret['@type'] = 'ok') return true
         else throw ret
-    }*/
+    }
+
+    async sendInvoice(chat_id, title, description, payload, provider_token, start_parameter, currency, prices, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let media = {
+            '@type': 'inputMessageInvoice',
+            title, 
+            description,
+            payload,
+            provider_token,
+            start_parameter,
+            invoice: {
+                currency, 
+                price_parts: [],
+                need_name: !!options.need_name,
+                need_phone_number: !!options.need_phone_number,
+                need_email_address: !!options.need_email,
+                need_shipping_address: !!options.need_shipping_address,
+                send_phone_number_to_provider: !!options.send_phone_number_to_provider,
+                send_email_address_to_provider: !!options.send_email_to_provider,
+                is_flexible: !!options.is_flexible
+            }
+        }
+        for (let pp of prices) { 
+            media.invoice.price_parts.push(pp)
+        }
+        if (provider_token.match(/:TEST:/)) {
+            media.invoice.is_test = true
+        }
+        if (options.photo_url)
+            media.photo_url = options.photo_url
+        if (options.photo_size)
+            media.photo_size = options.photo_size
+        if (options.photo_width)
+            media.photo_width = options.photo_width
+        if (options.photo_height)
+            media.photo_height = options.photo_height
+        if (options.provider_data) 
+            media.provider_data = options.provider_data
+        return this._sendMessage(chat_id, media, options)
+    }
+
+    async answerShippingQuery(shipping_query_id, ok, options = {}) {
+        let _opt = {
+            shipping_query_id,
+            shipping_options: []
+        }
+        if (ok) {
+            _opt.error_message = ''
+            for (let so of options.shipping_options) {
+                _opt.shipping_options.push({
+                    id: so.id,
+                    title: so.title,
+                    price_parts: so.prices
+                })
+            }
+        } else if (!options.error_message) {
+            throw new Error('When ok is false, you must specify error message.')
+        } else {
+            _opt.error_message = options.error_message
+        }
+        let ret = await this.run('answerShippingQuery', _opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    async answerPreCheckoutQuery(pre_checkout_query_id, ok, options = {}) {
+        let _opt = {
+            pre_checkout_query_id
+        }
+        if (ok) {
+            _opt.error_message = ''
+        } else if (!options.error_message) {
+            throw new Error('When ok is false, you must specify error message.')
+        } else {
+            _opt.error_message = options.error_message
+        }
+        let ret = await this.run('answerPreCheckoutQuery', _opt)
+        if (ret['@type'] = 'ok') return true
+        else throw ret
+    }
+
+    
 
     // Helpers
 
@@ -1139,8 +1231,7 @@ class Bot extends lib.TdClientActor {
     async _processIncomingUpdate(message) {
         if (message.is_outgoing) return
         let msg = await this._getMessage(message)
-        this.emit('message', msg)
-        console.log(msg)
+        return this.emit('message', msg)
     }
 
     async _processIncomingEdit(update) {
@@ -1150,7 +1241,7 @@ class Bot extends lib.TdClientActor {
         })
         if (_msg.is_outgoing) return
         let msg = await this._getMessage(_msg)
-        this.emit('edited_message', msg)
+        return this.emit('edited_message', msg)
     }
 
     async _processIncomingCallbackQuery(update) {
@@ -1171,7 +1262,35 @@ class Bot extends lib.TdClientActor {
                 evt.game_short_name = update.payload.game_short_name
                 break
         }
-        this.emit('callback_query', evt)
+        return this.emit('callback_query', evt)
+    }
+
+    async _processIncomingInlineQuery(update) {
+        let _from = await this._getUser(update.sender_user_id, false)
+        let evt = {
+            id: update.id,
+            from: _from,
+            query: update.query,
+            offset: update.offset
+        }
+        if (update.user_location) {
+            evt.location = await this.conversion.buildLocation(update.user_location)
+        } 
+        return this.emit('inline_query', evt)
+    }
+
+    async _processIncomingChosenInlineResult(update) {
+        let _from = await this._getUser(update.sender_user_id, false)
+        let evt = {
+            result_id: update.result_id,
+            from: _from,
+            query: update.query,
+            offset: update.offset
+        }
+        if (update.user_location) {
+            evt.location = await this.conversion.buildLocation(update.user_location)
+        } 
+        return this.emit('inline_query', evt)
     }
 
     async _initChatIfNeeded(chat_id) {

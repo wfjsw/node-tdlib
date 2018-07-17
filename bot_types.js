@@ -649,13 +649,44 @@ class BotTypeConversion {
         return _iq
     }
 
+    async buildTdlibInlineQueryResult(iqr) {
+        switch (iqr.type) {
+            case 'article':
+                return this.buildTdlibInlineQueryResultArticle(iqr)
+            case 'photo':
+                return this.buildTdlibInlineQueryResultPhoto(iqr)
+            case 'gif':
+                return this.buildTdlibInlineQueryResultAnimatedGif(iqr)
+            case 'mpeg4_gif':
+                return this.buildTdlibInlineQueryResultAnimatedMpeg4(iqr)
+            case 'video':
+                return this.buildTdlibInlineQueryResultVideo(iqr)
+            case 'audio':
+                return this.buildTdlibInlineQueryResultAudio(iqr)
+            case 'voice':
+                return this.buildTdlibInlineQueryResultVoiceNote(iqr)
+            case 'document':
+                return this.buildTdlibInlineQueryResultDocument(iqr)
+            case 'location':
+                return this.buildTdlibInlineQueryResultLocation(iqr)
+            case 'venue':
+                return this.buildTdlibInlineQueryResultVenue(iqr)
+            case 'contact':
+                return this.buildTdlibInlineQueryResultContact(iqr)
+            case 'game':
+                return this.buildTdlibInlineQueryResultGame(iqr)
+            default:
+                throw new Error(`Invalid inline query result type: ${iqr.type}`)
+        }
+    }
+
     async buildTdlibInlineQueryResultAnimatedGif(gif) {
         let _gif = {
-            id: gif.id,
+            id: gif.id
         }
         if (gif.gif_url) {
             _gif.gif_url = gif.gif_url
-            _gif.thumb_url = gif.thumb_url || gif.gif_url
+            if (gif.thumb_url) _gif.thumbnail_url = gif.thumb_url
         } else if (gif.gif_file_id) {
             _gif.gif_url = gif.gif_file_id
         }
@@ -671,9 +702,6 @@ class BotTypeConversion {
         if (gif.title) {
             _gif.title = gif.title
         }
-        if (gif.caption) {
-            _gif.caption = await this.client._generateFormattedText(gif.caption, gif.parse_mode)
-        }
         if (gif.reply_markup) {
             _gif.reply_markup = _util.parseReplyMarkup(gif.reply_markup)
         }
@@ -682,12 +710,490 @@ class BotTypeConversion {
         } else {
             _gif.input_message_content = {
                 '@type': 'inputMessageAnimation',
-                //animation: 
+                animation: null,
+                thumbnail: null,
+            }
+            if (gif.gif_duration) {
+                _gif.input_message_content.duration = gif.gif_duration
+            }
+            if (gif.gif_width) {
+                _gif.input_message_content.width = gif.gif_width
+            }
+            if (gif.gif_height) {
+                _gif.input_message_content.height = gif.gif_height
+            }
+            if (gif.caption) {
+                _gif.input_message_content.caption = await this.client._generateFormattedText(gif.caption, gif.parse_mode)
             }
         }
+        return _gif
     }
 
-    async buildTdlibInlineInputMessageContent(imc, caption) {
+    async buildTdlibInlineQueryResultAnimatedMpeg4(mpeg4) {
+        let _mpeg4 = {
+            id: mpeg4.id
+        }
+        if (mpeg4.mpeg4_url) {
+            _mpeg4.mpeg4_url = mpeg4.mpeg4_url
+            if (mpeg4.thumb_url) _mpeg4.thumbnail_url = mpeg4.thumb_url
+        } else if (mpeg4.mpeg4_file_id) {
+            _mpeg4.mpeg4_url = mpeg4.mpeg4_file_id
+        }
+        if (mpeg4.mpeg4_width) {
+            _mpeg4.mpeg4_width = mpeg4.mpeg4_width
+        }
+        if (mpeg4.mpeg4_height) {
+            _mpeg4.mpeg4_height = mpeg4.mpeg4_height
+        }
+        if (mpeg4.mpeg4_duration) {
+            _mpeg4.mpeg4_duration = mpeg4.mpeg4_duration
+        }
+        if (mpeg4.title) {
+            _mpeg4.title = mpeg4.title
+        }
+        if (mpeg4.reply_markup) {
+            _mpeg4.reply_markup = _util.parseReplyMarkup(mpeg4.reply_markup)
+        }
+        if (mpeg4.input_message_content) {
+            _mpeg4.input_message_content = await this.buildTdlibInlineInputMessageContent(mpeg4.input_message_content)
+        } else {
+            _mpeg4.input_message_content = {
+                '@type': 'inputMessageAnimation',
+                animation: null,
+                thumbnail: null,
+            }
+            if (mpeg4.mpeg4_duration) {
+                _mpeg4.input_message_content.duration = mpeg4.mpeg4_duration
+            }
+            if (mpeg4.mpeg4_width) {
+                _mpeg4.input_message_content.width = mpeg4.mpeg4_width
+            }
+            if (mpeg4.mpeg4_height) {
+                _mpeg4.input_message_content.height = mpeg4.mpeg4_height
+            }
+            if (mpeg4.caption) {
+                _mpeg4.input_message_content.caption = await this.client._generateFormattedText(mpeg4.caption, mpeg4.parse_mode)
+            }
+        }
+        return _mpeg4
+    }
+
+    async buildTdlibInlineQueryResultArticle(article) {
+        let _article = {
+            id: article.id,
+            title: article.title,
+            hide_url: !!article.hide_url
+        }
+        if (article.url) {
+            _article.url = article.url
+        }
+        if (article.thumb_url) {
+            _article.thumbnail_url = article.thumb_url
+        }
+        if (article.thumb_width) {
+            _article.thumbnail_width = article.thumb_width
+        }
+        if (article.thumb_height) {
+            _article.thumbnail_height = article.thumb_height
+        }
+        if (article.reply_markup) {
+            _article.reply_markup = _util.parseReplyMarkup(article.reply_markup)
+        }
+        if (article.input_message_content) {
+            _article.input_message_content = await this.buildTdlibInlineInputMessageContent(article.input_message_content)
+        } else {
+            throw new Error('Input_message_content not exist')
+        }
+        return _article
+    }
+
+    async buildTdlibInlineQueryResultAudio(audio) {
+        let _audio = {
+            id: audio.id,
+            audio_url: audio.audio_url || audio.audio_file_id
+        }
+        if (audio.performer) {
+            _audio.performer = audio.performer
+        }
+        if (audio.audio_duration) {
+            _audio.audio_duration = audio.audio_duration
+        }
+        if (audio.title) {
+            _audio.title = audio.title
+        }
+        if (audio.reply_markup) {
+            _audio.reply_markup = _util.parseReplyMarkup(audio.reply_markup)
+        }
+        if (audio.input_message_content) {
+            _audio.input_message_content = await this.buildTdlibInlineInputMessageContent(audio.input_message_content)
+        } else {
+            _audio.input_message_content = {
+                '@type': 'inputMessageAudio',
+                audio: null,
+                album_cover_thumbnail: null
+            }
+            if (audio.audio_duration) {
+                _audio.input_message_content.duration = audio.audio_duration
+            }
+            if (audio.title) {
+                _audio.input_message_content.title = audio.title
+            }
+            if (audio.performer) {
+                _audio.input_message_content.performer = audio.performer
+            }
+            if (audio.caption) {
+                _audio.input_message_content.caption = await this.client._generateFormattedText(audio.caption, audio.parse_mode)
+            }
+        }
+        return _audio
+    }
+
+    async buildTdlibInlineQueryResultContact(contact) {
+        let _contact = {
+            id: contact.id,
+            contact: {
+                first_name: contact.first_name,
+                phone_number: contact.phone_number
+            }
+        }
+        if (contact.last_name) {
+            _contact.contact.last_name = contact.last_name
+        }
+        if (contact.thumb_url) {
+            _contact.thumbnail_url = contact.thumb_url
+        }
+        if (contact.thumb_width) {
+            _contact.thumbnail_width = contact.thumb_width
+        }
+        if (contact.thumb_height) {
+            _contact.thumbnail_height = contact.thumb_height
+        }
+        if (contact.title) {
+            _contact.title = contact.title
+        }
+        if (contact.reply_markup) {
+            _contact.reply_markup = _util.parseReplyMarkup(contact.reply_markup)
+        }
+        if (contact.input_message_content) {
+            _contact.input_message_content = await this.buildTdlibInlineInputMessageContent(contact.input_message_content)
+        } else {
+            _contact.input_message_content = {
+                '@type': 'inputMessageContact',
+                contact: _contact.contact
+            }
+        }
+        return _contact
+    }
+
+    async buildTdlibInlineQueryResultDocument(document) {
+        let _document = {
+            id: document.id,
+            document_url: document.document_url || document.document_file_id
+        }
+        if (document.mime_type) {
+            _document.mime_type = document.mime_type
+        }
+        if (document.title) {
+            _document.title = document.title
+        }
+        if (document.description) {
+            _document.description = document.description
+        }
+        if (document.reply_markup) {
+            _document.reply_markup = _util.parseReplyMarkup(document.reply_markup)
+        }
+        if (document.input_message_content) {
+            _document.input_message_content = await this.buildTdlibInlineInputMessageContent(document.input_message_content)
+        } else {
+            _document.input_message_content = {
+                '@type': 'inputMessageDocument',
+                document: null,
+                thumbnail: null
+            }
+            if (document.caption) {
+                _document.input_message_content.caption = await this.client._generateFormattedText(document.caption, document.parse_mode)
+            }
+        }
+        return _document
+    }
+
+    async buildTdlibInlineQueryResultGame(game) {
+        let _game = {
+            id: game.id,
+            game_short_name: game.game_short_name
+        }
+        if (game.reply_markup) {
+            _game.reply_markup = _util.parseReplyMarkup(game.reply_markup)
+        }
+        return _game
+    }
+
+    async buildTdlibInlineQueryResultLocation(location) {
+        let _location = {
+            id: location.id,
+            location: {
+                latitude: location.latitude,
+                longitude: location.longitude
+            }
+        }
+        if (location.live_period) {
+            _location.live_period = location.live_period
+        }
+        if (location.thumb_url) {
+            _location.thumbnail_url = location.thumb_url
+        }
+        if (location.thumb_width) {
+            _location.thumbnail_width = location.thumb_width
+        }
+        if (location.thumb_height) {
+            _location.thumbnail_height = location.thumb_height
+        }
+        if (location.title) {
+            _location.title = location.title
+        }
+        if (location.reply_markup) {
+            _location.reply_markup = _util.parseReplyMarkup(location.reply_markup)
+        }
+        if (location.input_message_content) {
+            _location.input_message_content = await this.buildTdlibInlineInputMessageContent(location.input_message_content)
+        } else {
+            _location.input_message_content = {
+                '@type': 'inputMessageLocation',
+                location: null
+            }
+            if (location.live_period) {
+                _location.input_message_content.live_period = location.live_period // TODO: is null or copy?
+            }
+        }
+        return _location
+    }
+
+    async buildTdlibInlineQueryResultPhoto(photo) {
+        let _photo = {
+            id: photo.id
+        }
+        if (photo.photo_url) {
+            _photo.photo_url = photo.photo_url
+            _photo.thumbnail_url = photo.thumb_url || photo.photo_url
+        } else if (photo.photo_file_id) {
+            _photo.photo_url = photo.photo_file_id
+        }
+        if (photo.photo_width) {
+            _photo.photo_width = photo.photo_width
+        }
+        if (photo.photo_height) {
+            _photo.photo_height = photo.photo_height
+        }
+        if (photo.description) {
+            _photo.description = photo.description
+        }
+        if (photo.title) {
+            _photo.title = photo.title
+        }
+        if (photo.reply_markup) {
+            _photo.reply_markup = _util.parseReplyMarkup(photo.reply_markup)
+        }
+        if (photo.input_message_content) {
+            _photo.input_message_content = await this.buildTdlibInlineInputMessageContent(photo.input_message_content)
+        } else {
+            _photo.input_message_content = {
+                '@type': 'inputMessagePhoto',
+                photo: null,
+                thumbnail: null,
+            }
+            if (photo.photo_width) {
+                _photo.input_message_content.width = photo.photo_width
+            }
+            if (photo.photo_height) {
+                _photo.input_message_content.height = photo.photo_height
+            }
+            if (photo.caption) {
+                _photo.input_message_content.caption = await this.client._generateFormattedText(photo.caption, photo.parse_mode)
+            }
+        }
+        return _photo
+    }
+
+    async buildTdlibInlineQueryResultSticker(sticker) {
+        let _sticker = {
+            id: sticker.id
+        }
+        if (sticker.sticker_url) {
+            _sticker.sticker_url = sticker.sticker_url
+            _sticker.thumbnail_url = sticker.thumb_url || sticker.sticker_url
+        } else if (sticker.sticker_file_id) {
+            _sticker.sticker_url = sticker.sticker_file_id
+        }
+        if (sticker.sticker_width) {
+            _sticker.sticker_width = sticker.sticker_width
+        }
+        if (sticker.sticker_height) {
+            _sticker.sticker_height = sticker.sticker_height
+        }
+        if (sticker.description) {
+            _sticker.description = sticker.description
+        }
+        if (sticker.title) {
+            _sticker.title = sticker.title
+        }
+        if (sticker.reply_markup) {
+            _sticker.reply_markup = _util.parseReplyMarkup(sticker.reply_markup)
+        }
+        if (sticker.input_message_content) {
+            _sticker.input_message_content = await this.buildTdlibInlineInputMessageContent(sticker.input_message_content)
+        } else {
+            _sticker.input_message_content = {
+                '@type': 'inputMessageSticker',
+                sticker: null,
+                thumbnail: null,
+            }
+            if (sticker.sticker_width) {
+                _sticker.input_message_content.width = sticker.sticker_width
+            }
+            if (sticker.sticker_height) {
+                _sticker.input_message_content.height = sticker.sticker_height
+            }
+            if (sticker.caption) {
+                _sticker.input_message_content.caption = await this.client._generateFormattedText(sticker.caption, sticker.parse_mode)
+            }
+        }
+        return _sticker
+    }
+
+    async buildTdlibInlineQueryResultVenue(venue) {
+        let _venue = {
+            id: venue.id,
+            venue: {
+                location: {
+                    latitude: venue.latitude,
+                    longitude: venue.longitude
+                },
+                title: venue.title,
+                address: venue.address,
+                provider: 'foursquare'
+            }
+        }
+        if ('foursquare_id' in venue) {
+            _venue.venue.provider = 'foursquare'
+            _venue.venue.id = venue.foursquare_id
+        }
+        if (venue.thumb_url) {
+            _venue.thumbnail_url = venue.thumb_url
+        }
+        if (venue.thumb_width) {
+            _venue.thumbnail_width = venue.thumb_width
+        }
+        if (venue.thumb_height) {
+            _venue.thumbnail_height = venue.thumb_height
+        }
+        if (venue.reply_markup) {
+            _venue.reply_markup = _util.parseReplyMarkup(venue.reply_markup)
+        }
+        if (venue.input_message_content) {
+            _venue.input_message_content = await this.buildTdlibInlineInputMessageContent(venue.input_message_content)
+        } else {
+            _venue.input_message_content = {
+                '@type': 'inputMessageVenue',
+                venue: null
+            }
+        }
+        return _venue
+    }
+
+    async buildTdlibInlineQueryResultVideo(video) {
+        let _video = {
+            id: video.id
+        }
+        if (video.video_url) {
+            _video.video_url = video.video_url
+            if (video.thumb_url) _video.thumbnail_url = video.thumb_url
+        } else if (video.video_file_id) {
+            _video.video_url = video.video_file_id
+        }
+        if (video.video_width) {
+            _video.video_width = video.video_width
+        }
+        if (video.video_height) {
+            _video.video_height = video.video_height
+        }
+        if (video.video_duration) {
+            _video.video_duration = video.video_duration
+        }
+        if (video.mime_type) {
+            _video.mime_type = video.mime_type
+        }
+        if (video.description) {
+            _video.description = video.description
+        }
+        if (video.title) {
+            _video.title = video.title
+        }
+        if (video.reply_markup) {
+            _video.reply_markup = _util.parseReplyMarkup(video.reply_markup)
+        }
+        if (video.input_message_content) {
+            _video.input_message_content = await this.buildTdlibInlineInputMessageContent(video.input_message_content)
+        } else {
+            _video.input_message_content = {
+                '@type': 'inputMessageVideo',
+                video: null,
+                thumbnail: null
+            }
+            if (video.video_width) {
+                _video.input_message_content.width = video.video_width // TODO: Omit these in the future. (Need test)
+            }
+            if (video.video_height) {
+                _video.input_message_content.height = video.video_height
+            }
+            if (video.video_duration) {
+                _video.input_message_content.duration = video.video_duration
+            }
+            if (video.caption) {
+                _video.input_message_content.caption = await this.client._generateFormattedText(video.caption, video.parse_mode)
+            }
+        }
+        return _video
+    }
+
+    async buildTdlibInlineQueryResultVoiceNote(voicenote) {
+        let _voicenote = {
+            id: voicenote.id
+        }
+        if (voicenote.voicenote_url) {
+            _voicenote.video_note_url = voicenote.voice_url
+            if (voicenote.thumb_url) _voicenote.thumbnail_url = voicenote.thumb_url
+        } else if (voicenote.voice_file_id) {
+            _voicenote.voice_note_url = voicenote.voice_file_id
+        }
+        if (voicenote.voicenote_width) {
+            _voicenote.voice_note_duration = voicenote.voice_duration
+        }
+        if (voicenote.title) {
+            _voicenote.title = voicenote.title
+        }
+        if (voicenote.reply_markup) {
+            _voicenote.reply_markup = _util.parseReplyMarkup(voicenote.reply_markup)
+        }
+        if (voicenote.input_message_content) {
+            _voicenote.input_message_content = await this.buildTdlibInlineInputMessageContent(voicenote.input_message_content)
+        } else {
+            _voicenote.input_message_content = {
+                '@type': 'inputMessageVoiceNote',
+                voice_note: null,
+                thumbnail: null
+            }
+            if (voicenote.voice_duration) {
+                _voicenote.input_message_content.duration = voicenote.voice_duration
+            }
+            if (voicenote.caption) {
+                _voicenote.input_message_content.caption = await this.client._generateFormattedText(voicenote.caption, voicenote.parse_mode)
+            }
+        }
+        return _voicenote
+    }
+
+    // TODO: Support other types
+    async buildTdlibInlineInputMessageContent(imc) {
         if ('message_text' in imc) {
             return {
                 '@type': 'inputMessageText',
