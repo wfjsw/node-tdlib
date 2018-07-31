@@ -91,9 +91,9 @@ exports.parseReplyMarkup = (replymarkup) => {
             one_time: replymarkup.one_time_keyboard,
             is_personal: replymarkup.selective
         }
-        for (let r of replymarkup.inline_keyboard) {
+        for (let r of replymarkup.keyboard) {
             let colc = []
-            for (let c of replymarkup.inline_keyboard) {
+            for (let c of r) {
                 let col = {
                     '@type': 'keyboardButton',
                     text: c.text

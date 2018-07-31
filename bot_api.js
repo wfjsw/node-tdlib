@@ -49,8 +49,14 @@ class Bot extends lib.TdClientActor {
         this.on('__updateMessageEdited', (update) => {
             this._processIncomingEdit.call(self, update)
         })
+        this.on('__updateNewInlineQuery', (update) => {
+            
+        })
         this.on('__updateNewCallbackQuery', (update) => {
             this._processIncomingCallbackQuery.call(self, update)
+        })
+        this.on('__updateNewInlineCallbackQuery', (update) => {
+
         })
         this.once('ready', () => this.ready = true)
         this.conversion = new (require('./bot_types'))(this)
@@ -72,7 +78,7 @@ class Bot extends lib.TdClientActor {
         return this._sendMessage(chat_id, media, options)
     }
 
-    async forwardMessage(chat_id, from_chat_id, message_ids, { disable_notification }) {
+    async forwardMessage(chat_id, from_chat_id, message_ids, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         if (!Array.isArray(message_ids)) message_ids = [message_ids]
         chat_id = await this._checkChatId(chat_id)
@@ -81,7 +87,8 @@ class Bot extends lib.TdClientActor {
         let opt = {
             chat_id,
             from_chat_id,
-            disable_notification: !!disable_notification,
+            message_ids,
+            disable_notification: !!options.disable_notification,
             from_background: true
         }
         await this._initChatIfNeeded(chat_id)
@@ -111,11 +118,11 @@ class Bot extends lib.TdClientActor {
         return this._sendMessage(chat_id, media, options)
     }
 
-    async sendAudio(chat_id, audio, options = {}, { filename }) {
+    async sendAudio(chat_id, audio, options = {}, file_options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         let media = {
             '@type': 'inputMessageAudio',
-            audio: await this._prepareUploadFile(audio, filename)
+            audio: await this._prepareUploadFile(audio, file_options.filename)
         }
         if (options.caption)
             media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
@@ -128,22 +135,22 @@ class Bot extends lib.TdClientActor {
         return this._sendMessage(chat_id, media, options)
     }
 
-    async sendDocument(chat_id, document, options = {}, { filename }) {
+    async sendDocument(chat_id, document, options = {}, file_options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         let media = {
             '@type': 'inputMessageDocument',
-            document: await this._prepareUploadFile(document, filename)
+            document: await this._prepareUploadFile(document, file_options.filename)
         }
         if (options.caption)
             media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
         return this._sendMessage(chat_id, media, options)
     }
 
-    async sendVideo(chat_id, video, options = {}, { filename }) {
+    async sendVideo(chat_id, video, options = {}, file_options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         let media = {
             '@type': 'inputMessageVideo',
-            video: await this._prepareUploadFile(video, filename)
+            video: await this._prepareUploadFile(video, file_options.filename)
         }
         if (options.caption)
             media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
@@ -160,11 +167,11 @@ class Bot extends lib.TdClientActor {
         return this._sendMessage(chat_id, media, options)
     }
 
-    async sendVoice(chat_id, voice, options = {}, { filename }) {
+    async sendVoice(chat_id, voice, options = {}, file_options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         let media = {
             '@type': 'inputMessageVoiceNote',
-            voice_note: await this._prepareUploadFile(voice, filename)
+            voice_note: await this._prepareUploadFile(voice, file_options.filename)
         }
         if (options.caption)
             media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
@@ -173,11 +180,11 @@ class Bot extends lib.TdClientActor {
         return this._sendMessage(chat_id, media, options)
     }
 
-    async sendVideoNote(chat_id, video_note, options = {}, { filename }) {
+    async sendVideoNote(chat_id, video_note, options = {}, file_options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         let media = {
             '@type': 'inputMessageVideoNote',
-            video_note: await this._prepareUploadFile(video_note, filename)
+            video_note: await this._prepareUploadFile(video_note, file_options.filename)
         }
         if (options.caption)
             media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
@@ -713,7 +720,7 @@ class Bot extends lib.TdClientActor {
                 }
             }
             let ret = await this.run('editMessageText', _opt)
-            return _util.buildMessage(ret)
+            return this.conversion.buildMessage(ret)
         } else if (options.inline_message_id) {
             let _opt = {
                 inline_message_id: options.inline_message_id,
@@ -813,7 +820,7 @@ class Bot extends lib.TdClientActor {
         if (!Array.isArray(message_ids)) message_ids = [message_ids]
         message_ids = message_ids.map((id) => _util.get_tdlib_message_id(id))
         let _opt = {
-            chat_id: options.chat_id,
+            chat_id,
             message_ids,
             revoke: true
         }
@@ -951,17 +958,17 @@ class Bot extends lib.TdClientActor {
     }
 
     // Note: it use API id. Don't forget to convert
-    async _getMessageByAPIId(chat_id, message_id) {
+    async _getMessageByAPIId(chat_id, message_id, follow_replies_level) {
         let _mid = _util.get_tdlib_message_id(message_id)
-        return this._getMessageByTdlibId(chat_id, _mid)
+        return this._getMessageByTdlibId(chat_id, _mid, follow_replies_level)
     }
 
-    async _getMessageByTdlibId(chat_id, message_id) {
+    async _getMessageByTdlibId(chat_id, message_id, follow_replies_level) {
         let _msg = await this.run('getMessage', {
             chat_id,
             message_id
         })
-        return this._getMessage(_msg)
+        return this._getMessage(_msg, follow_replies_level)
     }
 
     async _getChatMember(chat_id, user_id) {
@@ -1140,7 +1147,6 @@ class Bot extends lib.TdClientActor {
         if (message.is_outgoing) return
         let msg = await this._getMessage(message)
         this.emit('message', msg)
-        console.log(msg)
     }
 
     async _processIncomingEdit(update) {

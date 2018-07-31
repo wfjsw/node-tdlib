@@ -99,7 +99,7 @@ class TdClientActor extends EventEmitter {
         let updates = lib.td_client_receive(this._instance_id, timeout)
         if (updates.length > 0) {
             for (let update of updates) {
-                console.log(update)
+                // console.log(update)
                 update = JSON.parse(update)
                 if (update['@type'] && update['@type'] != 'error') this.emit('__' + update['@type'], update)
                 if (update['@extra']) this.emit(update['@extra'], update)
