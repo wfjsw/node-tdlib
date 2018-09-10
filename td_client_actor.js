@@ -44,20 +44,6 @@ class TdClientActor extends EventEmitter {
         this.on('__updateAuthorizationState', async (update) => {
             switch (update.authorization_state['@type']) {
                 case 'authorizationStateWaitTdlibParameters':
-                    await this.run('setOption', {
-                        name: 'ignore_inline_thumbnails', 
-                        value: {
-                            '@type': 'optionValueBoolean', 
-                            value: true
-                        }
-                    })
-                    await this.run('setOption', {
-                        name: 'disable_top_chats', 
-                        value: {
-                            '@type': 'optionValueBoolean', 
-                            value: true
-                        }
-                    })
                     return this.run('setTdlibParameters', {
                         parameters: tdlib_param
                     })
