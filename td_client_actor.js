@@ -1,4 +1,4 @@
-const lib = require('bindings')('./tdlib.node')
+const lib = require('./tdlib.node')
 const EventEmitter = require('events')
 const path = require('path')
 const os = require('os')

@@ -936,7 +936,7 @@ class Bot extends lib.TdClientActor {
         options.inline_query_id = inline_query_id
         options.results = []
         for (let iqr of results) {
-            results.push(await this.conversion.buildTdlibInlineQueryResult(iqr))
+            options.results.push(await this.conversion.buildTdlibInlineQueryResult(iqr))
         }
         let ret = await this.run('answerInlineQuery', options)
         if (ret['@type'] = 'ok') return true

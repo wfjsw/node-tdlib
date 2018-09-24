@@ -682,6 +682,7 @@ class BotTypeConversion {
 
     async buildTdlibInlineQueryResultAnimatedGif(gif) {
         let _gif = {
+            '@type': 'inputInlineQueryResultAnimatedGif',
             id: gif.id
         }
         if (gif.gif_url) {
@@ -731,6 +732,7 @@ class BotTypeConversion {
 
     async buildTdlibInlineQueryResultAnimatedMpeg4(mpeg4) {
         let _mpeg4 = {
+            '@type': 'inputInlineQueryResultAnimatedMpeg4',
             id: mpeg4.id
         }
         if (mpeg4.mpeg4_url) {
@@ -780,12 +782,16 @@ class BotTypeConversion {
 
     async buildTdlibInlineQueryResultArticle(article) {
         let _article = {
+            '@type': 'inputInlineQueryResultArticle',
             id: article.id,
             title: article.title,
             hide_url: !!article.hide_url
         }
         if (article.url) {
             _article.url = article.url
+        }
+        if (article.description) {
+            _article.description = article.description
         }
         if (article.thumb_url) {
             _article.thumbnail_url = article.thumb_url
@@ -850,6 +856,7 @@ class BotTypeConversion {
 
     async buildTdlibInlineQueryResultContact(contact) {
         let _contact = {
+            '@type': 'inputInlineQueryResultContact',
             id: contact.id,
             contact: {
                 first_name: contact.first_name,
@@ -887,6 +894,7 @@ class BotTypeConversion {
 
     async buildTdlibInlineQueryResultDocument(document) {
         let _document = {
+            '@type': 'inputInlineQueryResultDocument',
             id: document.id,
             document_url: document.document_url || document.document_file_id
         }
@@ -919,6 +927,7 @@ class BotTypeConversion {
 
     async buildTdlibInlineQueryResultGame(game) {
         let _game = {
+            '@type': 'inputInlineQueryResultGame',
             id: game.id,
             game_short_name: game.game_short_name
         }
@@ -930,6 +939,7 @@ class BotTypeConversion {
 
     async buildTdlibInlineQueryResultLocation(location) {
         let _location = {
+            '@type': 'inputInlineQueryResultLocation',
             id: location.id,
             location: {
                 latitude: location.latitude,
@@ -970,6 +980,7 @@ class BotTypeConversion {
 
     async buildTdlibInlineQueryResultPhoto(photo) {
         let _photo = {
+            '@type': 'inputInlineQueryResultPhoto',
             id: photo.id
         }
         if (photo.photo_url) {
@@ -1016,6 +1027,7 @@ class BotTypeConversion {
 
     async buildTdlibInlineQueryResultSticker(sticker) {
         let _sticker = {
+            '@type': 'inputInlineQueryResultSticker',
             id: sticker.id
         }
         if (sticker.sticker_url) {
@@ -1062,6 +1074,7 @@ class BotTypeConversion {
 
     async buildTdlibInlineQueryResultVenue(venue) {
         let _venue = {
+            '@type': 'inputInlineQueryResultVenue',
             id: venue.id,
             venue: {
                 location: {
@@ -1102,6 +1115,7 @@ class BotTypeConversion {
 
     async buildTdlibInlineQueryResultVideo(video) {
         let _video = {
+            '@type': 'inputInlineQueryResultVideo',
             id: video.id
         }
         if (video.video_url) {
@@ -1157,6 +1171,7 @@ class BotTypeConversion {
 
     async buildTdlibInlineQueryResultVoiceNote(voicenote) {
         let _voicenote = {
+            '@type': 'inputInlineQueryResultVoiceNote',
             id: voicenote.id
         }
         if (voicenote.voicenote_url) {
