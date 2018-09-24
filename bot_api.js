@@ -31,20 +31,6 @@ class Bot extends lib.TdClientActor {
             this.on('__updateAuthorizationState', async (update) => {
                 switch (update.authorization_state['@type']) {
                     case 'authorizationStateWaitPhoneNumber':
-                        await this.run('setOption', {
-                            name: 'ignore_inline_thumbnails',
-                            value: {
-                                '@type': 'optionValueBoolean',
-                                value: true
-                            }
-                        })
-                        await this.run('setOption', {
-                            name: 'disable_top_chats',
-                            value: {
-                                '@type': 'optionValueBoolean',
-                                value: true
-                            }
-                        })
                         return this.run('checkAuthenticationBotToken', {
                             token: bot_token
                         })
@@ -76,6 +62,13 @@ class Bot extends lib.TdClientActor {
             this._processIncomingChosenInlineResult.call(self, update)
         })
         this.once('ready', () => this.ready = true)
+        this.once('ready', () => this.run('setOption', {
+            name: 'ignore_inline_thumbnails',
+            value: {
+                '@type': 'optionValueBoolean',
+                value: true
+            }
+        }))
         this.conversion = new (require('./bot_types'))(this)
     }
 
