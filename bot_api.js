@@ -28,7 +28,7 @@ class Bot extends lib.TdClientActor {
         this.ready = false
         this._inited_chat = new Set()
         if (bot_token) {
-            this.on('__updateAuthorizationState', (update) => {
+            this.on('__updateAuthorizationState', async (update) => {
                 switch (update.authorization_state['@type']) {
                     case 'authorizationStateWaitPhoneNumber':
                         return this.run('checkAuthenticationBotToken', {
@@ -62,6 +62,13 @@ class Bot extends lib.TdClientActor {
             this._processIncomingChosenInlineResult.call(self, update)
         })
         this.once('ready', () => this.ready = true)
+        this.once('ready', () => this.run('setOption', {
+            name: 'ignore_inline_thumbnails',
+            value: {
+                '@type': 'optionValueBoolean',
+                value: true
+            }
+        }))
         this.conversion = new (require('./bot_types'))(this)
     }
 
@@ -129,11 +136,11 @@ class Bot extends lib.TdClientActor {
         }
         if (options.caption)
             media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
-        if (options.duration) 
+        if (options.duration)
             media.duration = options.duration
         if (options.title)
             media.title = options.title
-        if (options.performer) 
+        if (options.performer)
             media.performer = options.performer
         return this._sendMessage(chat_id, media, options)
     }
@@ -206,7 +213,7 @@ class Bot extends lib.TdClientActor {
                 let _md = {
                     '@type': 'inputMessagePhoto',
                     photo: await this._prepareUploadFile(md.media)
-                }      
+                }
                 if (md.caption)
                     _md.caption = await this._generateFormattedText(md.caption, md.parse_mode)
                 _medias.push(_md)
@@ -947,13 +954,13 @@ class Bot extends lib.TdClientActor {
         if (!this.ready) throw new Error('Not ready.')
         let media = {
             '@type': 'inputMessageInvoice',
-            title, 
+            title,
             description,
             payload,
             provider_token,
             start_parameter,
             invoice: {
-                currency, 
+                currency,
                 price_parts: [],
                 need_name: !!options.need_name,
                 need_phone_number: !!options.need_phone_number,
@@ -964,7 +971,7 @@ class Bot extends lib.TdClientActor {
                 is_flexible: !!options.is_flexible
             }
         }
-        for (let pp of prices) { 
+        for (let pp of prices) {
             media.invoice.price_parts.push(pp)
         }
         if (provider_token.match(/:TEST:/)) {
@@ -978,7 +985,7 @@ class Bot extends lib.TdClientActor {
             media.photo_width = options.photo_width
         if (options.photo_height)
             media.photo_height = options.photo_height
-        if (options.provider_data) 
+        if (options.provider_data)
             media.provider_data = options.provider_data
         return this._sendMessage(chat_id, media, options)
     }
@@ -1023,7 +1030,7 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
-    
+
 
     // Helpers
 
@@ -1261,7 +1268,7 @@ class Bot extends lib.TdClientActor {
             evt.inline_message_id = update.inline_message_id
         }
         switch (update.payload['@type']) {
-            case 'callbackQueryPayloadData': 
+            case 'callbackQueryPayloadData':
                 evt.data = Buffer.from(update.payload.data, 'base64').toString('utf8')
                 break
             case 'callbackQueryPayloadGame':
@@ -1281,7 +1288,7 @@ class Bot extends lib.TdClientActor {
         }
         if (update.user_location) {
             evt.location = await this.conversion.buildLocation(update.user_location)
-        } 
+        }
         return this.emit('inline_query', evt)
     }
 
@@ -1295,7 +1302,7 @@ class Bot extends lib.TdClientActor {
         }
         if (update.user_location) {
             evt.location = await this.conversion.buildLocation(update.user_location)
-        } 
+        }
         return this.emit('inline_query', evt)
     }
 

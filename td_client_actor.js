@@ -41,7 +41,7 @@ class TdClientActor extends EventEmitter {
         }
         this._tdlib_param = tdlib_param
         this._encryption_key = 'database_encryption_key' in options ? options.database_encryption_key : 'password'
-        this.on('__updateAuthorizationState', (update) => {
+        this.on('__updateAuthorizationState', async (update) => {
             switch (update.authorization_state['@type']) {
                 case 'authorizationStateWaitTdlibParameters':
                     return this.run('setTdlibParameters', {
