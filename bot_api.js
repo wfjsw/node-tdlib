@@ -380,7 +380,7 @@ class Bot extends lib.TdClientActor {
         return this._sendMessage(chat_id, media, options)
     }
 
-    async sendChatAction(chat_id, action, options = {}) {
+    async sendChatAction(chat_id, action) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
@@ -425,7 +425,7 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
-    async unbanChatMember(chat_id, user_id, options = {}) {
+    async unbanChatMember(chat_id, user_id) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
@@ -490,7 +490,7 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
-    async exportChatInviteLink(chat_id, options = {}) {
+    async exportChatInviteLink(chat_id) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
@@ -501,7 +501,7 @@ class Bot extends lib.TdClientActor {
         return ret.invite_link
     }
 
-    async setChatPhoto(chat_id, photo, options = {}) {
+    async setChatPhoto(chat_id, photo) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
@@ -514,7 +514,7 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
-    async deleteChatPhoto(chat_id, options = {}) {
+    async deleteChatPhoto(chat_id) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
@@ -527,7 +527,7 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
-    async setChatTitle(chat_id, title, options = {}) {
+    async setChatTitle(chat_id, title) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
@@ -540,7 +540,7 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
-    async setChatDescription(chat_id, description, options = {}) {
+    async setChatDescription(chat_id, description) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
         if (chat_id > -Math.pow(10, 12)) throw new Error('Not a supergroup or channel.')
@@ -570,7 +570,7 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
-    async unpinChatMessage(chat_id, options = {}) {
+    async unpinChatMessage(chat_id) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
         if (chat_id > -Math.pow(10, 12)) throw new Error('Not a supergroup or channel.')
@@ -583,7 +583,7 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
-    async leaveChat(chat_id, options = {}) {
+    async leaveChat(chat_id) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
@@ -793,6 +793,46 @@ class Bot extends lib.TdClientActor {
         }
     }
 
+    async editMessageMedia(media, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        if (options.chat_id && options.message_id) {
+            options.chat_id = await this._checkChatId(options.chat_id)
+            await this._initChatIfNeeded(options.chat_id)
+            let orig_msg = await this.run('getMessage', {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id)
+            })
+            let _opt = {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id),
+                input_message_content: await this.conversion.buildTdlibMedia(media)
+            }
+            if (options.reply_markup) {
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            } else if (options.preserve_reply_markup) {
+                if (orig_msg.reply_markup) {
+                    _opt.reply_markup = orig_msg.reply_markup
+                }
+            }
+            let ret = await this.run('editMessageCaption', _opt)
+            return _util.buildMessage(ret)
+        } else if (options.inline_message_id) {
+            let _opt = {
+                inline_message_id: options.inline_message_id,
+                caption: await this.conversion.buildTdlibMedia(media)
+            }
+            if (options.reply_markup) {
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            }
+            let ret = await this.run('editInlineMessageCaption', _opt)
+            if (ret['@type'] == 'ok')
+                return true
+            else throw ret
+        } else {
+            throw new Error('Please specify chat_id and message_id or inline_message_id.')
+        }
+    }
+
     async editMessageReplyMarkup(reply_markup, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         if (options.chat_id && options.message_id) {
@@ -824,7 +864,7 @@ class Bot extends lib.TdClientActor {
         }
     }
 
-    async deleteMessage(chat_id, message_ids, options = {}) {
+    async deleteMessage(chat_id, message_ids) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
@@ -866,7 +906,7 @@ class Bot extends lib.TdClientActor {
         return this.conversion.buildStickerSet(pack)
     }
 
-    async uploadStickerFile(user_id, png_sticker, options = {}) {
+    async uploadStickerFile(user_id, png_sticker) {
         if (!this.ready) throw new Error('Not ready.')
         let opt = {
             user_id,
@@ -917,7 +957,7 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
-    async setStickerPositionInSet(sticker, position, options = {}) {
+    async setStickerPositionInSet(sticker, position) {
         if (!this.ready) throw new Error('Not ready.')
         let opt = {
             sticker: await this._prepareUploadFile(sticker),
@@ -929,7 +969,7 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
-    async deleteStickerFromSet(sticker, position, options = {}) {
+    async deleteStickerFromSet(sticker) {
         if (!this.ready) throw new Error('Not ready.')
         let opt = {
             sticker: await this._prepareUploadFile(sticker),

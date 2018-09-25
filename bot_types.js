@@ -1284,6 +1284,61 @@ class BotTypeConversion {
         }
     }
 
+    async buildTdlibMedia(media) {
+        let ret
+        switch (media.type) {
+            case 'photo':
+                ret = {
+                    '@type': 'inputMessagePhoto',
+                    photo: await this.client._prepareUploadFile(media.media)
+                }
+                if (media.caption) ret.caption = await this._generateFormattedText(media.caption, media.parse_mode)
+                return ret
+            case 'video':
+                ret = {
+                    '@type': 'inputMessageVideo',
+                    video: await this.client._prepareUploadFile(media.media),
+                    supports_streaming: media.supports_streaming
+                }
+                if (media.thumb) ret.thumbnail = await this.client._prepareUploadFile(media.thumb)
+                if (media.caption) ret.caption = await this.client._generateFormattedText(media.caption, media.parse_mode)
+                if (media.height) ret.height = media.height
+                if (media.width) ret.width = media.width
+                if (media.duration) ret.duration = media.duration
+                return ret
+            case 'animation':
+                ret = {
+                    '@type': 'inputMessageAnimation',
+                    animation: await this.client._prepareUploadFile(media.media),
+                }
+                if (media.thumb) ret.thumbnail = await this.client._prepareUploadFile(media.thumb)
+                if (media.caption) ret.caption = await this.client._generateFormattedText(media.caption, media.parse_mode)
+                if (media.height) ret.height = media.height
+                if (media.width) ret.width = media.width
+                if (media.duration) ret.duration = media.duration
+                return ret
+            case 'audio':
+                ret = {
+                    '@type': 'inputMessageAudio',
+                    audio: await this.client._prepareUploadFile(media.media),
+                }
+                if (media.thumb) ret.album_cover_thumbnail = await this.client._prepareUploadFile(media.thumb)
+                if (media.caption) ret.caption = await this.client._generateFormattedText(media.caption, media.parse_mode)
+                if (media.performer) ret.performer = media.performer
+                if (media.title) ret.title = media.title
+                if (media.duration) ret.duration = media.duration
+                return ret
+            case 'document':
+                ret = {
+                    '@type': 'inputMessageDocument',
+                    document: await this.client._prepareUploadFile(media.media),
+                }
+                if (media.thumb) ret.thumbnail = await this.client._prepareUploadFile(media.thumb)
+                if (media.caption) ret.caption = await this.client._generateFormattedText(media.caption, media.parse_mode)
+                return ret
+        }
+    }
+
     async buildOrderInfo(order_info) {
         let _oi = {
             name: order_info.name,
