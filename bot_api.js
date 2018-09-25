@@ -23,6 +23,7 @@ class Bot extends lib.TdClientActor {
             use_chat_info_database: false,
             use_file_database: false
         })
+        this.bot_id = bot_token.split(':')[0]
         this._identifier = identifier
         let self = this
         this.ready = false
