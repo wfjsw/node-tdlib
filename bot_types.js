@@ -1292,7 +1292,7 @@ class BotTypeConversion {
                     '@type': 'inputMessagePhoto',
                     photo: await this.client._prepareUploadFile(media.media)
                 }
-                if (media.caption) ret.caption = await this._generateFormattedText(media.caption, media.parse_mode)
+                if (media.caption) ret.caption = await this.client._generateFormattedText(media.caption, media.parse_mode)
                 return ret
             case 'video':
                 ret = {

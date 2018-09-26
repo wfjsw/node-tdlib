@@ -4,13 +4,14 @@ const stream = require('stream')
 const fs = require('fs')
 const fsp = fs.promises
 const path = require('path')
+const crypto = require('crypto')
 const lib = require('./td_client_actor')
 const _util = require('./util')
 
 lib.td_set_log_verbosity_level(2)
 
 class Bot extends lib.TdClientActor {
-    constructor(api_id, api_hash, bot_token, use_test_dc = false, identifier = null) {
+    constructor(api_id, api_hash, bot_token, use_test_dc = false, identifier = null, options = {}) {
         if (!api_id || !api_hash) throw new Error('missing api_id, api_hash')
         if (identifier === null) identifier = `bot${bot_token.split(':')[0]}`
         super({
@@ -25,9 +26,15 @@ class Bot extends lib.TdClientActor {
         })
         this.bot_id = bot_token.split(':')[0]
         this._identifier = identifier
+        if (options.encrypt_callback_query) {
+            this._encrypt_callback_query = crypto.scryptSync(bot_token, this._encryption_key, 32)
+        } else {
+            this._encrypt_callback_query = false
+        }
         let self = this
         this.ready = false
         this._inited_chat = new Set()
+        
         if (bot_token) {
             this.on('__updateAuthorizationState', async (update) => {
                 switch (update.authorization_state['@type']) {
@@ -278,14 +285,14 @@ class Bot extends lib.TdClientActor {
                 }
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
             } else if (options.preserve_reply_markup) {
                 if (orig_msg.reply_markup) {
                     _opt.reply_markup = orig_msg.reply_markup
                 }
             }
             let ret = await this.run('editMessageLiveLocation', _opt)
-            return _util.buildMessage(ret)
+            return this.conversion.buildMessage(ret)
         } else if (options.inline_message_id) {
             let _opt = {
                 inline_message_id: options.inline_message_id,
@@ -295,7 +302,7 @@ class Bot extends lib.TdClientActor {
                 }
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
             }
             let ret = await this.run('editMessageLiveLocation', _opt)
             if (ret['@type'] == 'ok')
@@ -323,7 +330,7 @@ class Bot extends lib.TdClientActor {
                 location: null
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
             } else if (options.preserve_reply_markup) {
                 if (orig_msg.reply_markup) {
                     _opt.reply_markup = orig_msg.reply_markup
@@ -337,7 +344,7 @@ class Bot extends lib.TdClientActor {
                 location: null
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
             }
             let ret = await this.run('editMessageLiveLocation', _opt)
             if (ret['@type'] == 'ok')
@@ -724,7 +731,7 @@ class Bot extends lib.TdClientActor {
                 }
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
             } else if (options.preserve_reply_markup) {
                 if (orig_msg.reply_markup) {
                     _opt.reply_markup = orig_msg.reply_markup
@@ -742,7 +749,7 @@ class Bot extends lib.TdClientActor {
                 }
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
             }
             let ret = await this.run('editInlineMessageText', _opt)
             if (ret['@type'] == 'ok')
@@ -768,21 +775,21 @@ class Bot extends lib.TdClientActor {
                 caption: await this._generateFormattedText(caption, options.parse_mode)
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
             } else if (options.preserve_reply_markup) {
                 if (orig_msg.reply_markup) {
                     _opt.reply_markup = orig_msg.reply_markup
                 }
             }
             let ret = await this.run('editMessageCaption', _opt)
-            return _util.buildMessage(ret)
+            return this.conversion.buildMessage(ret)
         } else if (options.inline_message_id) {
             let _opt = {
                 inline_message_id: options.inline_message_id,
                 caption: await this._generateFormattedText(caption, options.parse_mode)
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
             }
             let ret = await this.run('editInlineMessageCaption', _opt)
             if (ret['@type'] == 'ok')
@@ -808,23 +815,23 @@ class Bot extends lib.TdClientActor {
                 input_message_content: await this.conversion.buildTdlibMedia(media)
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
             } else if (options.preserve_reply_markup) {
                 if (orig_msg.reply_markup) {
                     _opt.reply_markup = orig_msg.reply_markup
                 }
             }
-            let ret = await this.run('editMessageCaption', _opt)
-            return _util.buildMessage(ret)
+            let ret = await this.run('editMessageMedia', _opt)
+            return this.conversion.buildMessage(ret)
         } else if (options.inline_message_id) {
             let _opt = {
                 inline_message_id: options.inline_message_id,
-                caption: await this.conversion.buildTdlibMedia(media)
+                input_message_content: await this.conversion.buildTdlibMedia(media)
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
             }
-            let ret = await this.run('editInlineMessageCaption', _opt)
+            let ret = await this.run('editInlineMessageMedia', _opt)
             if (ret['@type'] == 'ok')
                 return true
             else throw ret
@@ -844,16 +851,16 @@ class Bot extends lib.TdClientActor {
             }
 
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
             }
             let ret = await this.run('editMessageReplyMarkup', _opt)
-            return _util.buildMessage(ret)
+            return this.conversion.buildMessage(ret)
         } else if (options.inline_message_id) {
             let _opt = {
                 inline_message_id: options.inline_message_id,
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
             }
             let ret = await this.run('editInlineMessageReplyMarkup', _opt)
             if (ret['@type'] == 'ok')
@@ -1240,7 +1247,7 @@ class Bot extends lib.TdClientActor {
             input_message_content: content
         }
         if (options.reply_markup) {
-            opt.reply_markup = _util.parseReplyMarkup(options.reply_markup)
+            opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
         }
         await self._initChatIfNeeded(chat_id)
         let old_msg = await self.run('sendMessage', opt)
@@ -1310,7 +1317,19 @@ class Bot extends lib.TdClientActor {
         }
         switch (update.payload['@type']) {
             case 'callbackQueryPayloadData':
-                evt.data = Buffer.from(update.payload.data, 'base64').toString('utf8')
+                if (this._encrypt_callback_query) {
+                    let payload = Buffer.from(update.payload.data, 'base64')
+                    let magic = payload.slice(0, 4)
+                    if (magic.equals(Buffer.from('0f0f0f0f', 'hex'))) {
+                        let decryptor = crypto.createDecipheriv('aes-256-cfb', this._encrypt_callback_query, '0000000000000000')
+                        evt.data = Buffer.concat([decryptor.update(payload.slice(4)), decryptor.final()]).toString('utf8')
+                    } else {
+                        // magic not found
+                        evt.data = payload.toString('utf8')
+                    }
+                } else {
+                    evt.data = Buffer.from(update.payload.data, 'base64').toString('utf8')
+                }
                 break
             case 'callbackQueryPayloadGame':
                 evt.game_short_name = update.payload.game_short_name

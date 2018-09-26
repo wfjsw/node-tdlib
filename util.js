@@ -18,6 +18,11 @@ exports.get_api_message_id = (msg_id) => {
     else throw new Error('Wrong message id.')
 }
 
+exports.scrypt = (password, salt, keylen) => new Promise((rs, rj) => crypto.scrypt(password, salt, keylen, (err, derivedKey) => {
+    if (err) rj(err)
+    else rs(derivedKey) 
+}))
+
 exports.fileExists = async (_path, mode = fs.constants.F_OK) => {
     try {
         await fsp.access(path.resolve(_path), mode)
@@ -36,7 +41,7 @@ exports.fileExistsSync = (_path, mode = fs.constants.F_OK) => {
     }
 }
 
-exports.parseReplyMarkup = (replymarkup) => {
+exports.parseReplyMarkup = (replymarkup, encrypt_callback_query = false) => {
     if ('inline_keyboard' in replymarkup) {
         let keyboard = {
             '@type': 'replyMarkupInlineKeyboard',
@@ -57,7 +62,12 @@ exports.parseReplyMarkup = (replymarkup) => {
                 } else if ('callback_data' in c) {
                     col.type = {
                         '@type': 'inlineKeyboardButtonTypeCallback',
-                        data: Buffer.from(c.callback_data, 'utf8').toString('base64')
+                    }
+                    if (encrypt_callback_query) {
+                        let encryptor = crypto.createCipheriv('aes-256-cfb', encrypt_callback_query, '0000000000000000')
+                        col.type.data = Buffer.concat([Buffer.from('0f0f0f0f', 'hex'), encryptor.update(Buffer.from(c.callback_data, 'utf8')), encryptor.final()]).toString('base64')
+                    } else {
+                        col.type.data = Buffer.from(c.callback_data, 'utf8').toString('base64')
                     }
                 } else if ('switch_inline_query' in c) {
                     col.type = {
