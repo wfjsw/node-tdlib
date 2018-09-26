@@ -1319,10 +1319,10 @@ class Bot extends lib.TdClientActor {
             case 'callbackQueryPayloadData':
                 if (this._encrypt_callback_query) {
                     let payload = Buffer.from(update.payload.data, 'base64')
-                    let magic = payload.slice(0, 4)
-                    if (magic.equals(Buffer.from('0f0f0f0f', 'hex'))) {
+                    let magic = payload.slice(0, 2)
+                    if (magic.equals(Buffer.from('0f0f', 'hex'))) {
                         let decryptor = crypto.createDecipheriv('aes-256-cfb', this._encrypt_callback_query, '0000000000000000')
-                        evt.data = Buffer.concat([decryptor.update(payload.slice(4)), decryptor.final()]).toString('utf8')
+                        evt.data = Buffer.concat([decryptor.update(payload.slice(2)), decryptor.final()]).toString('utf8')
                     } else {
                         // magic not found
                         evt.data = payload.toString('utf8')

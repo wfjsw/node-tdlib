@@ -65,7 +65,7 @@ exports.parseReplyMarkup = (replymarkup, encrypt_callback_query = false) => {
                     }
                     if (encrypt_callback_query) {
                         let encryptor = crypto.createCipheriv('aes-256-cfb', encrypt_callback_query, '0000000000000000')
-                        col.type.data = Buffer.concat([Buffer.from('0f0f0f0f', 'hex'), encryptor.update(Buffer.from(c.callback_data, 'utf8')), encryptor.final()]).toString('base64')
+                        col.type.data = Buffer.concat([Buffer.from('0f0f', 'hex'), encryptor.update(Buffer.from(c.callback_data, 'utf8')), encryptor.final()]).toString('base64')
                     } else {
                         col.type.data = Buffer.from(c.callback_data, 'utf8').toString('base64')
                     }

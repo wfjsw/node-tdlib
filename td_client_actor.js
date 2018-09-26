@@ -60,6 +60,9 @@ class TdClientActor extends EventEmitter {
         this.on('__updateFileGenerationStart', (update) => {
             return this._generateFile(update)
         })
+        this.on('__updateFile', update => {
+            return this._cleanUploadedFile(update)
+        })
         this._instance_id = lib.td_client_create()
         this._ready = true
         setImmediate(this._pollupdates.bind(this), options.poll_timeout)
@@ -191,6 +194,13 @@ class TdClientActor extends EventEmitter {
                 })
             }
         }
+    }
+
+    async _cleanUploadedFile(update) {
+        if (!update.remote.is_uploading_completed) return
+        if (!update.local.path.match(/^\/tmp\/tdlib\-/)) return
+        if (!update.local.can_be_deleted) return
+        return fsp.unlink(update.local.path)
     }
 }
 
