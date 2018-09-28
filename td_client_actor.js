@@ -197,9 +197,11 @@ class TdClientActor extends EventEmitter {
     }
 
     async _cleanUploadedFile(update) {
-        if (!update.remote.is_uploading_completed) return
-        if (!update.local.path.match(/^\/tmp\/tdlib\-/)) return
-        if (!update.local.can_be_deleted) return
+        if (!update.file.remote) return
+        if (!update.file.local) return
+        if (!update.file.remote.is_uploading_completed) return
+        if (!update.file.local.path.match(/^\/tmp\/tdlib\-/)) return
+        if (!update.file.local.can_be_deleted) return
         return fsp.unlink(update.local.path)
     }
 }
