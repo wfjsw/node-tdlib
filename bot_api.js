@@ -636,8 +636,24 @@ class Bot extends lib.TdClientActor {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
-        let chat = await this._getChat(chat_id, true)
-        return chat.member_count
+        let chat = await this.run('getChat', {
+            chat_id
+        })
+        if (chat.type['@type'] == 'chatTypeSupergroup') {
+            let additional_full = await this.client.run('getSupergroupFullInfo', {
+                supergroup_id: chat.type.supergroup_id
+            })
+            return additional_full.member_count
+        } else if (chat.type['@type'] == 'chatTypeBasicGroup') {
+            let additional = await this.client.run('getBasicGroup', {
+                basic_group_id: chat.type.basic_group_id
+            })
+            return additional.member_count
+        } else if (chat.type['@type'] == 'chatTypePrivate') {
+            throw new Error('Not a group or a channel.')
+        } else {
+            throw new Error('Unknown Chat Type.')
+        }
     }
 
     async getChatMember(chat_id, user_id) {

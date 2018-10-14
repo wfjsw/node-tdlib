@@ -226,6 +226,7 @@ class BotTypeConversion {
                     basic_group_id: chat.type.basic_group_id
                 })
                 bot_chat.creator = additional_full.creator_user_id
+                bot_chat.members = additional_full.members
                 // members here? really?
             }
         } else if (chat.type['@type'] == 'chatTypePrivate') {
