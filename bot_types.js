@@ -198,6 +198,7 @@ class BotTypeConversion {
                         bot_chat.sticker_set_id = additional_full.sticker_set_id
                     }
                     bot_chat.description = additional_full.description
+                    if (additional_full.member_count) bot_chat.member_count = additional_full.member_count 
                     bot_chat.administrator_count = additional_full.administrator_count
                     bot_chat.restricted_count = additional_full.restricted_count
                     bot_chat.banned_count = additional_full.banned_count

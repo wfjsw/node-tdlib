@@ -636,7 +636,7 @@ class Bot extends lib.TdClientActor {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
-        let chat = await this._getChat(chat_id, false)
+        let chat = await this._getChat(chat_id, true)
         return chat.member_count
     }
 
