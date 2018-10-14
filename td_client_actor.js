@@ -108,7 +108,7 @@ class TdClientActor extends EventEmitter {
                 if (update['@extra']) this.emit(update['@extra'], update)
             }
         }
-        setTimeout(this._pollupdates.bind(this), 15, timeout, true)
+        setTimeout(this._pollupdates.bind(this), 10, timeout, true)
     }
 
     async _generateFile(update) {
@@ -199,10 +199,14 @@ class TdClientActor extends EventEmitter {
     async _cleanUploadedFile(update) {
         if (!update.file.remote) return
         if (!update.file.local) return
+        if (!update.file.local.path) return
         if (!update.file.remote.is_uploading_completed) return
         if (!update.file.local.path.match(/^\/tmp\/tdlib\-/)) return
-        if (!update.file.local.can_be_deleted) return
-        return fsp.unlink(update.local.path)
+        try {
+            await fsp.unlink(update.file.local.path)
+        } finally {
+            return
+        }
     }
 }
 

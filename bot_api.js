@@ -1290,7 +1290,11 @@ class Bot extends lib.TdClientActor {
     async _processIncomingUpdate(message) {
         if (message.is_outgoing) return
         let msg = await this._getMessage(message)
-        return this.emit('message', msg)
+        if (message.is_channel_post) {
+            return this.emit('channel_post', msg)
+        } else {
+            return this.emit('message', msg)
+        }
     }
 
     async _processIncomingEdit(update) {
@@ -1300,7 +1304,11 @@ class Bot extends lib.TdClientActor {
         })
         if (_msg.is_outgoing) return
         let msg = await this._getMessage(_msg)
-        return this.emit('edited_message', msg)
+        if (_msg.is_channel_post) {
+            return this.emit('edited_channel_post', msg)
+        } else {
+            return this.emit('edited_message', msg)
+        }
     }
 
     async _processIncomingCallbackQuery(update) {
@@ -1363,7 +1371,7 @@ class Bot extends lib.TdClientActor {
         if (update.user_location) {
             evt.location = await this.conversion.buildLocation(update.user_location)
         }
-        return this.emit('inline_query', evt)
+        return this.emit('chosen_inline_result', evt)
     }
 
     async _initChatIfNeeded(chat_id) {
