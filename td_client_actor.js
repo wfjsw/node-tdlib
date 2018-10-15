@@ -162,8 +162,7 @@ class TdClientActor extends EventEmitter {
             try {
                 let _path = path.parse(update.original_path)
                 let orig = _path.dir
-                await fsp.copyFile(orig, update.destination_path)
-                await fsp.unlink(orig)
+                await fsp.rename(orig, update.destination_path)
                 return this.run('finishFileGeneration', {
                     generation_id: update.generation_id
                 })
@@ -181,6 +180,21 @@ class TdClientActor extends EventEmitter {
                 let _path = path.parse(update.original_path)
                 let orig = _path.dir
                 await fsp.copyFile(orig, update.destination_path, fs.constants.COPYFILE_FICLONE)
+                return this.run('finishFileGeneration', {
+                    generation_id: update.generation_id
+                })
+            } catch (e) {
+                return this.run('finishFileGeneration', {
+                    generation_id: update.generation_id,
+                    error: {
+                        code: 500,
+                        message: e.message
+                    }
+                })
+            }
+        } else if (update.conversion == '#temp_file#') {
+            try {
+                await fsp.rename(update.original_path, update.destination_path)
                 return this.run('finishFileGeneration', {
                     generation_id: update.generation_id
                 })

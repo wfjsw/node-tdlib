@@ -1203,8 +1203,10 @@ class Bot extends lib.TdClientActor {
                         })
                     } else {
                         return rs({
-                            '@type': 'inputFileLocal',
-                            path: file_path
+                            '@type': 'inputFileGenerated',
+                            original_path: file_path,
+                            conversion: '#temp_file#',
+                            expected_size: 0
                         })
                     }
                 })
@@ -1222,8 +1224,10 @@ class Bot extends lib.TdClientActor {
                 }
             } else {
                 return {
-                    '@type': 'inputFileLocal',
-                    path: file_path
+                    '@type': 'inputFileGenerated',
+                    original_path: file_path,
+                    conversion: '#temp_file#',
+                    expected_size: 0
                 }
             }
         } else if (isNaN(file)) {
