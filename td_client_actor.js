@@ -60,9 +60,9 @@ class TdClientActor extends EventEmitter {
         this.on('__updateFileGenerationStart', (update) => {
             return this._generateFile(update)
         })
-        this.on('__updateFile', update => {
-            return this._cleanUploadedFile(update)
-        })
+        // this.on('__updateFile', update => {
+        //    return this._cleanUploadedFile(update)
+        // })
         this._instance_id = lib.td_client_create()
         this._ready = true
         setImmediate(this._pollupdates.bind(this), options.poll_timeout)
