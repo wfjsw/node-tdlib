@@ -70,13 +70,22 @@ class Bot extends lib.TdClientActor {
             this._processIncomingChosenInlineResult.call(self, update)
         })
         this.once('ready', () => this.ready = true)
-        this.once('ready', () => this.run('setOption', {
-            name: 'ignore_inline_thumbnails',
-            value: {
-                '@type': 'optionValueBoolean',
-                value: true
-            }
-        }))
+        this.once('ready', () => {
+            this.run('setOption', {
+                name: 'ignore_inline_thumbnails',
+                value: {
+                    '@type': 'optionValueBoolean',
+                    value: true
+                }
+            })
+            this.run('setOption', {
+                name: 'use_storage_optimizer',
+                value: {
+                    '@type': 'optionValueBoolean',
+                    value: true
+                }
+            })
+        })
         this.conversion = new (require('./bot_types'))(this)
     }
 
