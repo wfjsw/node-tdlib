@@ -649,12 +649,12 @@ class Bot extends lib.TdClientActor {
             chat_id
         })
         if (chat.type['@type'] == 'chatTypeSupergroup') {
-            let additional_full = await this.client.run('getSupergroupFullInfo', {
+            let additional_full = await this.run('getSupergroupFullInfo', {
                 supergroup_id: chat.type.supergroup_id
             })
             return additional_full.member_count
         } else if (chat.type['@type'] == 'chatTypeBasicGroup') {
-            let additional = await this.client.run('getBasicGroup', {
+            let additional = await this.run('getBasicGroup', {
                 basic_group_id: chat.type.basic_group_id
             })
             return additional.member_count
