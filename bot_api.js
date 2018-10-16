@@ -24,7 +24,7 @@ class Bot extends lib.TdClientActor {
             use_chat_info_database: false,
             use_file_database: false
         })
-        this.bot_id = bot_token.split(':')[0]
+        this.bot_id = parseInt(bot_token.split(':')[0])
         this._identifier = identifier
         if (options.encrypt_callback_query) {
             this._encrypt_callback_query = crypto.scryptSync(bot_token, this._encryption_key, 32)
@@ -1155,6 +1155,7 @@ class Bot extends lib.TdClientActor {
     }
 
     async _generateFormattedText(text, parse_mode) {
+        text = text.toString()
         if (parse_mode) {
             let parser
             switch (parse_mode) {
