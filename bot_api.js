@@ -420,8 +420,6 @@ class Bot extends lib.TdClientActor {
         return this.conversion.buildUserProfilePhotos(ret)
     }
 
-    // getFile - ?????????
-
     async kickChatMember(chat_id, user_id, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
@@ -1133,6 +1131,8 @@ class Bot extends lib.TdClientActor {
         } else {
             _id = parseInt(_id)
         }
+        if (priority < 1) priority = 1
+        if (priority > 32) priority = 32
         return new Promise((rs, rj) => {
             self.once(`file_downloaded_${_id}`, file => {
                 return rs({
@@ -1146,6 +1146,22 @@ class Bot extends lib.TdClientActor {
                 priority
             }).catch(rj)
         })
+    }
+
+    async deleteFile(file_id) {
+        let _id = file_id
+        if (isNaN(file_id)) {
+            let _file = await this.run('getRemoteFile', {
+                remote_file_id: _id
+            })
+            _id = _file.id
+        } else {
+            _id = parseInt(_id)
+        }
+        let ret = await this.run('deleteFile', {file_id: _id})
+        if (ret['@type'] == 'ok')
+            return true
+        else throw ret
     }
 
     // Helpers
