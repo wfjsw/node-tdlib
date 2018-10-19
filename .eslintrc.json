@@ -5,14 +5,29 @@
         "es6": true,
         "node": true
     },
+    "extends": "eslint:recommended",
     "parserOptions": {
-        "ecmaFeatures": {
-            "jsx": true
-        },
         "sourceType": "script",
         "ecmaVersion": 2017
     },
     "rules": {
+        "no-console": "off",
+        "indent": [
+            "warn",
+            4
+        ],
+        "linebreak-style": [
+            "warn",
+            "unix"
+        ],
+        "quotes": [
+            "warn",
+            "single"
+        ],
+        "semi": [
+            "warn",
+            "never"
+        ],
         "no-const-assign": "warn",
         "no-this-before-super": "warn",
         "no-undef": "error",
@@ -20,7 +35,6 @@
         "no-unused-vars": "warn",
         "constructor-super": "warn",
         "valid-typeof": "warn",
-        "indent": "off",
         "no-extra-semi": "warn",
         "no-return-await": "warn",
         "no-extra-parens": "warn"

@@ -556,8 +556,7 @@ class BotTypeConversion {
         let ret = {
             user: await this.buildUser(user, false),
             status: chat_member_status_mirror_table.get(cm.status['@type']),
-            joined_chat_date: cm.joined_chat_date,
-
+            joined_chat_date: cm.joined_chat_date
         }
 
         if (cm.status['@type'] == 'chatMemberStatusAdministrator') {

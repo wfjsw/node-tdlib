@@ -34,7 +34,7 @@ class Bot extends lib.TdClientActor {
         let self = this
         this.ready = false
         this._inited_chat = new Set()
-        
+
         if (bot_token) {
             this.on('__updateAuthorizationState', async (update) => {
                 switch (update.authorization_state['@type']) {
@@ -405,7 +405,7 @@ class Bot extends lib.TdClientActor {
             action: await this.conversion.buildTdlibChatAction(action)
         }
         let ret = await this.run('sendChatAction', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -437,7 +437,7 @@ class Bot extends lib.TdClientActor {
             opt.status.banned_until_date = options.until_date
         }
         let ret = await this.run('setChatMemberStatus', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -453,7 +453,7 @@ class Bot extends lib.TdClientActor {
             }
         }
         let ret = await this.run('setChatMemberStatus', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -477,7 +477,7 @@ class Bot extends lib.TdClientActor {
         if ('can_add_web_page_previews' in options) opt.status.can_add_web_page_previews = options.can_add_web_page_previews
 
         let ret = await this.run('setChatMemberStatus', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -502,7 +502,7 @@ class Bot extends lib.TdClientActor {
         if ('can_promote_members' in options) opt.status.can_promote_members = options.can_promote_members
 
         let ret = await this.run('setChatMemberStatus', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -526,7 +526,7 @@ class Bot extends lib.TdClientActor {
             photo: this._prepareUploadFile(photo)
         }
         let ret = await this.run('setChatPhoto', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -539,7 +539,7 @@ class Bot extends lib.TdClientActor {
             photo: this._prepareUploadFile(0)
         }
         let ret = await this.run('setChatPhoto', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -552,7 +552,7 @@ class Bot extends lib.TdClientActor {
             title
         }
         let ret = await this.run('setChatTitle', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -566,7 +566,7 @@ class Bot extends lib.TdClientActor {
             description
         }
         let ret = await this.run('setSupergroupDescription', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -582,7 +582,7 @@ class Bot extends lib.TdClientActor {
             disable_notification: !!options.disable_notification
         }
         let ret = await this.run('pinSupergroupMessage', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -595,7 +595,7 @@ class Bot extends lib.TdClientActor {
             supergroup_id: Math.abs(chat_id) - Math.pow(10, 12),
         }
         let ret = await this.run('uninSupergroupMessage', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -612,7 +612,7 @@ class Bot extends lib.TdClientActor {
             }
         }
         let ret = await this.run('setChatMemberStatus', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -694,7 +694,7 @@ class Bot extends lib.TdClientActor {
         }
 
         let ret = await this.run('setSupergroupStickerSet', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -708,7 +708,7 @@ class Bot extends lib.TdClientActor {
         }
 
         let ret = await this.run('setSupergroupStickerSet', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -732,7 +732,7 @@ class Bot extends lib.TdClientActor {
             options.callback_query_id = callback_query_id;
         }
         let ret = await this.run('answerCallbackQuery', options)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -967,7 +967,7 @@ class Bot extends lib.TdClientActor {
         }
         opt.stickers = stks
         let ret = await this.run('createNewStickerSet', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -985,7 +985,7 @@ class Bot extends lib.TdClientActor {
             opt.sticker.mask_position = await this.conversion.buildTdlibMaskPosition(options.mask_position)
         }
         let ret = await this.run('addStickerToSet', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -997,7 +997,7 @@ class Bot extends lib.TdClientActor {
         }
         if (opt.sticker['@type'] != 'inputFileRemote') throw new Error('Only sticker file_id is acceptable.')
         let ret = await this.run('setStickerPositionInSet', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -1008,7 +1008,7 @@ class Bot extends lib.TdClientActor {
         }
         if (opt.sticker['@type'] != 'inputFileRemote') throw new Error('Only sticker file_id is acceptable.')
         let ret = await this.run('removeStickerFromSet', opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -1019,7 +1019,7 @@ class Bot extends lib.TdClientActor {
             options.results.push(await this.conversion.buildTdlibInlineQueryResult(iqr))
         }
         let ret = await this.run('answerInlineQuery', options)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -1083,7 +1083,7 @@ class Bot extends lib.TdClientActor {
             _opt.error_message = options.error_message
         }
         let ret = await this.run('answerShippingQuery', _opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -1099,7 +1099,7 @@ class Bot extends lib.TdClientActor {
             _opt.error_message = options.error_message
         }
         let ret = await this.run('answerPreCheckoutQuery', _opt)
-        if (ret['@type'] = 'ok') return true
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
