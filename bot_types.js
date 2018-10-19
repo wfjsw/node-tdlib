@@ -552,7 +552,6 @@ class BotTypeConversion {
             user_id: cm.user_id
         })
 
-            
         let ret = {
             user: await this.buildUser(user, false),
             status: chat_member_status_mirror_table.get(cm.status['@type']),
@@ -560,22 +559,22 @@ class BotTypeConversion {
         }
 
         if (cm.status['@type'] == 'chatMemberStatusAdministrator') {
-            ret.can_be_edited == cm.status.can_be_edited
-            ret.can_change_info == cm.status.can_change_info
-            ret.can_post_messages == cm.status.can_post_messages
-            ret.can_edit_messages == cm.status.can_edit_messages
-            ret.can_delete_messages == cm.status.can_delete_messages
-            ret.can_invite_users == cm.status.can_invite_users
-            ret.can_restrict_members == cm.status.can_restrict_members
-            ret.can_pin_messages == cm.status.can_pin_messages
-            ret.can_promote_members == cm.status.can_promote_members
+            ret.can_be_edited = cm.status.can_be_edited
+            ret.can_change_info = cm.status.can_change_info
+            ret.can_post_messages = cm.status.can_post_messages
+            ret.can_edit_messages = cm.status.can_edit_messages
+            ret.can_delete_messages = cm.status.can_delete_messages
+            ret.can_invite_users = cm.status.can_invite_users
+            ret.can_restrict_members = cm.status.can_restrict_members
+            ret.can_pin_messages = cm.status.can_pin_messages
+            ret.can_promote_members = cm.status.can_promote_members
         } else if (cm.status['@type'] == 'chatMemberStatusRestricted') {
             ret.is_member = cm.status.is_member
             ret.until_date = cm.status.restricted_until_date
-            ret.can_send_messages == cm.status.can_send_messages
-            ret.can_send_media_messages == cm.status.can_send_media_messages
-            ret.can_send_other_messages == cm.status.can_send_other_messages
-            ret.can_add_web_page_previews == cm.status.can_add_web_page_previews
+            ret.can_send_messages = cm.status.can_send_messages
+            ret.can_send_media_messages = cm.status.can_send_media_messages
+            ret.can_send_other_messages = cm.status.can_send_other_messages
+            ret.can_add_web_page_previews = cm.status.can_add_web_page_previews
         } else if (cm.status['@type'] == 'chatMemberStatusBanned') {
             ret.until_date = cm.status.banned_until_date
         } else if (cm.status['@type'] == 'chatMemberStatusCreator') {
