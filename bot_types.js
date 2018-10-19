@@ -167,7 +167,7 @@ class BotTypeConversion {
             }
             bot_chat.username = additional.username
             bot_chat.date = additional.date
-            bot_chat.status = _util.getStatus(additional.status)
+            bot_chat.status = await this.buildChatMember(additional.status)
             bot_chat.member_count = additional.member_count // This is not reliable. Use another approach.
             bot_chat.is_verified = additional.is_verified
             bot_chat.restriction_reason = additional.restriction_reason
@@ -190,7 +190,7 @@ class BotTypeConversion {
                         }
                     } catch (e) {} 
 
-                    if (additional_full.sticker_set_id != "0") {
+                    if (additional_full.sticker_set_id.toString() != '0') {
                         let sticker_set = await this.client.run('getStickerSet', {
                             set_id: additional_full.sticker_set_id
                         })
@@ -548,37 +548,41 @@ class BotTypeConversion {
     }
 
     async buildChatMember(cm) {
-        let user = await this.client.run('getUser', {
-            user_id: cm.user_id
-        })
-
-        let ret = {
-            user: await this.buildUser(user, false),
-            status: chat_member_status_mirror_table.get(cm.status['@type']),
-            joined_chat_date: cm.joined_chat_date
+        let ret = {}
+        if (cm.user_id) {
+            let user = await this.client.run('getUser', {
+                user_id: cm.user_id
+            })
+            ret.user = await this.buildUser(user, false)
         }
 
-        if (cm.status['@type'] == 'chatMemberStatusAdministrator') {
-            ret.can_be_edited = cm.status.can_be_edited
-            ret.can_change_info = cm.status.can_change_info
-            ret.can_post_messages = cm.status.can_post_messages
-            ret.can_edit_messages = cm.status.can_edit_messages
-            ret.can_delete_messages = cm.status.can_delete_messages
-            ret.can_invite_users = cm.status.can_invite_users
-            ret.can_restrict_members = cm.status.can_restrict_members
-            ret.can_pin_messages = cm.status.can_pin_messages
-            ret.can_promote_members = cm.status.can_promote_members
-        } else if (cm.status['@type'] == 'chatMemberStatusRestricted') {
-            ret.is_member = cm.status.is_member
-            ret.until_date = cm.status.restricted_until_date
-            ret.can_send_messages = cm.status.can_send_messages
-            ret.can_send_media_messages = cm.status.can_send_media_messages
-            ret.can_send_other_messages = cm.status.can_send_other_messages
-            ret.can_add_web_page_previews = cm.status.can_add_web_page_previews
-        } else if (cm.status['@type'] == 'chatMemberStatusBanned') {
-            ret.until_date = cm.status.banned_until_date
-        } else if (cm.status['@type'] == 'chatMemberStatusCreator') {
-            ret.is_member = cm.status.is_member
+        if (cm.joined_chat_date) ret.joined_chat_date = cm.joined_chat_date
+
+        const cmstat = cm.status ? cm.status : cm
+
+        ret.status = chat_member_status_mirror_table.get(cmstat['@type'])
+
+        if (cmstat['@type'] == 'chatMemberStatusAdministrator') {
+            ret.can_be_edited = cmstat.can_be_edited
+            ret.can_change_info = cmstat.can_change_info
+            ret.can_post_messages = cmstat.can_post_messages
+            ret.can_edit_messages = cmstat.can_edit_messages
+            ret.can_delete_messages = cmstat.can_delete_messages
+            ret.can_invite_users = cmstat.can_invite_users
+            ret.can_restrict_members = cmstat.can_restrict_members
+            ret.can_pin_messages = cmstat.can_pin_messages
+            ret.can_promote_members = cmstat.can_promote_members
+        } else if (cmstat['@type'] == 'chatMemberStatusRestricted') {
+            ret.is_member = cmstat.is_member
+            ret.until_date = cmstat.restricted_until_date
+            ret.can_send_messages = cmstat.can_send_messages
+            ret.can_send_media_messages = cmstat.can_send_media_messages
+            ret.can_send_other_messages = cmstat.can_send_other_messages
+            ret.can_add_web_page_previews = cmstat.can_add_web_page_previews
+        } else if (cmstat['@type'] == 'chatMemberStatusBanned') {
+            ret.until_date = cmstat.banned_until_date
+        } else if (cmstat['@type'] == 'chatMemberStatusCreator') {
+            ret.is_member = cmstat.is_member
         }
 
         if (cm.inviter_user_id) {

@@ -14,7 +14,7 @@ exports.get_tdlib_message_id = (msg_id) => {
 
 exports.get_api_message_id = (msg_id) => {
     let result = parseInt(msg_id) / Math.pow(2, 20)
-    if ((result * Math.pow(2, 20)) === parseInt(msg_id)) return result
+    if (result * Math.pow(2, 20) === parseInt(msg_id)) return result
     else throw new Error('Wrong message id.')
 }
 
@@ -142,46 +142,3 @@ exports.parseReplyMarkup = (replymarkup, encrypt_callback_query = false) => {
 }
 
 
-
-exports.getStatus = (chatMemberStatus) => {
-    switch (chatMemberStatus['@type']) {
-        case 'chatMemberStatusCreator':
-            delete chatMemberStatus['@type']
-            delete chatMemberStatus['@extra']
-            return Object.assign(chatMemberStatus, {
-                status: 'creator'
-            })
-        case 'chatMemberStatusAdministrator':
-            delete chatMemberStatus['@type']
-            delete chatMemberStatus['@extra']
-            return Object.assign(chatMemberStatus, {
-                status: 'administrator'
-            })
-        case 'chatMemberStatusMember':
-            delete chatMemberStatus['@type']
-            delete chatMemberStatus['@extra']
-            return Object.assign(chatMemberStatus, {
-                status: 'member'
-            })
-        case 'chatMemberStatusRestricted':
-            delete chatMemberStatus['@type']
-            delete chatMemberStatus['@extra']
-            return Object.assign(chatMemberStatus, {
-                status: 'restricted',
-                until_date: chatMemberStatus.restricted_until_date
-            })
-        case 'chatMemberStatusLeft':
-            delete chatMemberStatus['@type']
-            delete chatMemberStatus['@extra']
-            return Object.assign(chatMemberStatus, {
-                status: 'left'
-            })
-        case 'chatMemberStatusBanned':
-            delete chatMemberStatus['@type']
-            delete chatMemberStatus['@extra']
-            return Object.assign(chatMemberStatus, {
-                status: 'kicked',
-                until_date: chatMemberStatus.banned_until_date
-            })
-    }
-}
