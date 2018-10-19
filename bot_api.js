@@ -968,7 +968,7 @@ class Bot extends lib.TdClientActor {
     }
 
     // incompability
-    async creteNewStickerSet(user_id, name, title, stickers, options = {}) {
+    async createNewStickerSet(user_id, name, title, stickers, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         let opt = {
             user_id,
@@ -1122,7 +1122,31 @@ class Bot extends lib.TdClientActor {
         else throw ret
     }
 
-
+    async getFile(file_id, priority = 1) {
+        let self = this
+        let _id = file_id
+        if (isNaN(file_id)) {
+            let _file = await self.run('getRemoteFile', {
+                remote_file_id: _id
+            })
+            _id = _file.id
+        } else {
+            _id = parseInt(_id)
+        }
+        return new Promise((rs, rj) => {
+            self.once(`file_downloaded_${_id}`, file => {
+                return rs({
+                    file_id: file.id,
+                    file_size: file.size,
+                    file_path: file.local.path
+                })
+            })
+            self.run('downloadFile', {
+                file_id: _id,
+                priority
+            }).catch(rj)
+        })
+    }
 
     // Helpers
 

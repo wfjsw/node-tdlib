@@ -16,7 +16,7 @@ class TdClientActor extends EventEmitter {
         this._closed = false
         this._stop_poll = false
         this._options = options
-        if (!options.api_id || !options.api_hash || !'identifier' in options) throw new Error('missing api_id, api_hash or identifier')
+        if (!options.api_id || !options.api_hash || !('identifier' in options)) throw new Error('missing api_id, api_hash or identifier')
         let tdlib_param = {
             '@type': 'tdlibParameters'
         }
@@ -63,6 +63,9 @@ class TdClientActor extends EventEmitter {
         // this.on('__updateFile', update => {
         //    return this._cleanUploadedFile(update)
         // })
+        this.on('__updateFile', update => {
+            return this._emitFileDownloadedEvent(update)
+        })
         this._instance_id = lib.td_client_create()
         this._ready = true
         setImmediate(this._pollupdates.bind(this), options.poll_timeout)
@@ -215,11 +218,17 @@ class TdClientActor extends EventEmitter {
         if (!update.file.local) return
         if (!update.file.local.path) return
         if (!update.file.remote.is_uploading_completed) return
-        if (!update.file.local.path.match(/^\/tmp\/tdlib\-/)) return
+        if (!update.file.local.path.match(/^\/tmp\/tdlib-/)) return
         try {
             await fsp.unlink(update.file.local.path)
-        } finally {
-            return
+        } catch (e) { }
+    }
+
+    _emitFileDownloadedEvent(update) {
+        if (!update.file.local) return
+        if (update.file.local.is_downloading_completed) {
+            this.emit(`file_downloaded_${update.file.id}`, update.file)
+            this.emit('file_downloaded', update.file)
         }
     }
 }
