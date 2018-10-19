@@ -633,12 +633,31 @@ class Bot extends lib.TdClientActor {
         let opt = {
             chat_id
         }
-        let ret = await this.run('getChatAdministrators', opt)
-        let admins = []
-        for (let a of ret.user_ids) {
-            admins.push(await this._getChatMember(chat_id, a))
+        if (chat_id < -Math.pow(10, 12)) {
+            let supergroup_id = Math.abs(chat_id) - Math.pow(10, 12)
+            let admin_members = await this.run('getSupergroupMembers', {
+                supergroup_id,
+                filter: {
+                    '@type': 'supergroupMembersFilterAdministrators'
+                },
+                offset: 0,
+                limit: 200
+            })
+            let admins = []
+            for (let a of admin_members.members) {
+                admins.push(await this.conversion.buildChatMember(a))
+            }
+            return admins
+        } else if (chat_id < 0) {
+            let ret = await this.run('getChatAdministrators', opt)
+            let admins = []
+            for (let a of ret.user_ids) {
+                admins.push(await this._getChatMember(chat_id, a))
+            }
+            return admins
+        } else {
+            throw new Error('Not a chat')
         }
-        return admins
     }
 
     async getChatMembersCount(chat_id) {
@@ -727,9 +746,9 @@ class Bot extends lib.TdClientActor {
          * We need to ensure backwards-compatibility while maintaining
          * consistency of the method signatures throughout the library. */
         if (typeof callback_query_id === 'object') {
-            options = callback_query_id;
+            options = callback_query_id
         } else {
-            options.callback_query_id = callback_query_id;
+            options.callback_query_id = callback_query_id
         }
         let ret = await this.run('answerCallbackQuery', options)
         if (ret['@type'] == 'ok') return true
