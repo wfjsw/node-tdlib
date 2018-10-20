@@ -1247,10 +1247,10 @@ class Bot extends lib.TdClientActor {
     async _checkChatId(chat_id) {
         if (isNaN(chat_id))
             return (await this.run('searchPublicChat', {
-                username: chat_id.match(/^[@]{0,1}([a-zA-Z0-9_]+)$/)[0]
+                username: chat_id.match(/^@?([a-zA-Z0-9_]+)$/)[0]
             })).id
         else
-            return chat_id
+            return parseInt(chat_id)
     }
 
     async _prepareUploadFile(file, file_name = null) {
