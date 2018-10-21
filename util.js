@@ -72,11 +72,13 @@ exports.parseReplyMarkup = (replymarkup, encrypt_callback_query = false) => {
                 } else if ('switch_inline_query' in c) {
                     col.type = {
                         '@type': 'inlineKeyboardButtonTypeSwitchInline',
+                        query: c.switch_inline_query,
                         in_current_chat: false
                     }
                 } else if ('switch_inline_query_current_chat' in c) {
                     col.type = {
                         '@type': 'inlineKeyboardButtonTypeSwitchInline',
+                        query: c.switch_inline_query_current_chat,
                         in_current_chat: true
                     }
                 } else if ('callback_game' in c) {
