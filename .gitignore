@@ -64,3 +64,5 @@ typings/
 test.js 
 
 *.node
+
+build/
