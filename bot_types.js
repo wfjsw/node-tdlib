@@ -221,6 +221,7 @@ class BotTypeConversion {
                 basic_group_id: chat.type.basic_group_id
             })
             bot_chat.type = 'group'
+            bot_chat.status = await this.buildChatMember(additional.status)
             bot_chat.all_members_are_administrators = additional.everyone_is_administrator
             bot_chat.is_active = additional.is_active
             bot_chat.member_count = additional.member_count
@@ -1409,12 +1410,16 @@ class BotTypeConversion {
             _sticker.thumb = await this.buildPhotoSize(sticker.thumbnail)
         }
         if (sticker.set_id && include_set) {
-            let set = await this.client.run('getStickerSet', {
-                set_id: sticker.set_id
-            })
-            _sticker.set_name = set.name
-            _sticker.set_title = set.title
-            _sticker.set_official = set.is_official
+            try {
+                let set = await this.client.run('getStickerSet', {
+                    set_id: sticker.set_id
+                })
+                _sticker.set_name = set.name
+                _sticker.set_title = set.title
+                _sticker.set_official = set.is_official
+            } catch (e) {
+                // just ignore this
+            }
         }
         return _sticker
     }

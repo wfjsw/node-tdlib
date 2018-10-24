@@ -3,7 +3,6 @@
   "version": "1.3.0-2",
   "description": "",
   "main": "index.js",
-  "types": "index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "install": "node download_prebuilt || node build_binary",

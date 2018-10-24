@@ -650,7 +650,8 @@ class Bot extends lib.TdClientActor {
             let ret = await this.run('getChatAdministrators', opt)
             let admins = []
             for (let a of ret.user_ids) {
-                admins.push(await this._getChatMember(chat_id, a))
+                let member = await this._getChatMember(chat_id, a)
+                admins.push(member)
             }
             return admins
         } else {
@@ -1417,7 +1418,12 @@ class Bot extends lib.TdClientActor {
             chat_instance: update.chat_instance,
         }
         if (update.chat_id && update.message_id) {
-            evt.message = await this._getMessageByTdlibId(update.chat_id, update.message_id)
+            try {
+                evt.message_id = _util.get_api_message_id(update.message_id)
+                evt.message = await this._getMessageByTdlibId(update.chat_id, update.message_id)
+            } catch (e) {
+                // ignore
+            }
         } else if (update.inline_message_id) {
             evt.inline_message_id = update.inline_message_id
         }
