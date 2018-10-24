@@ -266,11 +266,15 @@ class BotTypeConversion {
         if (message.reply_to_message_id) {
             bot_message.reply_to_message_id = _util.get_api_message_id(message.reply_to_message_id)
             if (follow_replies_level > 0) {
-                let reply_msg = await this.client.run('getRepliedMessage', {
-                    chat_id: message.chat_id,
-                    message_id: message.id
-                })
-                bot_message.reply_to_message = await this.buildMessage(reply_msg, follow_replies_level - 1)
+                try {
+                    let reply_msg = await this.client.run('getRepliedMessage', {
+                        chat_id: message.chat_id,
+                        message_id: message.id
+                    })
+                    bot_message.reply_to_message = await this.buildMessage(reply_msg, follow_replies_level - 1)
+                } catch (e) {
+                    // failed to get replied message. did it got deleted? lets ignore this.
+                }
             }
         }
         if (message.media_group_id)

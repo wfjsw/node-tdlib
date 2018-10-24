@@ -1245,12 +1245,21 @@ class Bot extends lib.TdClientActor {
     }
 
     async _checkChatId(chat_id) {
-        if (isNaN(chat_id))
-            return (await this.run('searchPublicChat', {
-                username: chat_id.match(/^@?([a-zA-Z0-9_]+)$/)[0]
-            })).id
-        else
+        if (isNaN(chat_id)) {
+            if (typeof chat_id != 'string') {
+                throw new Error('chat_id is not a string nor number: ' + chat_id)
+            }
+            try {
+                return (await this.run('searchPublicChat', {
+                    username: chat_id.match(/^@?([a-zA-Z0-9_]+)$/)[0]
+                })).id
+            } catch (e) {
+                throw new Error('cannot resolve name: ' + chat_id)
+            }
+        } else {
             return parseInt(chat_id)
+
+        }
     }
 
     async _prepareUploadFile(file, file_name = null) {
