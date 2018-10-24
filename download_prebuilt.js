@@ -17,7 +17,8 @@ async function checkAndDownload() {
         method: 'HEAD',
         url: tdlib.debug ? url.debug : url.main,
         resolveWithFullResponse: true,
-        simple: false
+        simple: false,
+        followRedirect: false
     })
     if (head.statusCode == 301 || head.statusCode == 302) {
         console.log('Build exist. Downloading...')
