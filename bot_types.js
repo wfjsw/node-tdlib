@@ -190,12 +190,16 @@ class BotTypeConversion {
                         }
                     } catch (e) {} 
 
-                    if (additional_full.sticker_set_id.toString() != '0') {
-                        let sticker_set = await this.client.run('getStickerSet', {
-                            set_id: additional_full.sticker_set_id
-                        })
-                        bot_chat.sticker_set_name = sticker_set.name
-                        bot_chat.sticker_set_id = additional_full.sticker_set_id
+                    if (additional_full.sticker_set_id && additional_full.sticker_set_id.toString() != '0') {
+                        try {
+                            let sticker_set = await this.client.run('getStickerSet', {
+                                set_id: additional_full.sticker_set_id
+                            })
+                            bot_chat.sticker_set_name = sticker_set.name
+                            bot_chat.sticker_set_id = additional_full.sticker_set_id
+                        } catch (e) {
+                            console.error('failed to get sticker set', additional_full.sticker_set_id)
+                        }
                     }
                     bot_chat.description = additional_full.description
                     if (additional_full.member_count) bot_chat.member_count = additional_full.member_count 

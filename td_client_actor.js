@@ -6,6 +6,7 @@ const rq = require('request')
 const fs = require('fs')
 const fsp = fs.promises
 const util = require('./util')
+const {inspect} = require('util')
 
 class TdClientActor extends EventEmitter {
     constructor(options = {}) {
@@ -72,13 +73,24 @@ class TdClientActor extends EventEmitter {
     }
 
     run(method, params = {}) {
+        let stack_trace = new Error().stack.split('\n').slice(1).join('\n')
         return new Promise((rs, rj) => {
             if (this._closed) throw new Error('already destroyed')
             let req = params
             req['@type'] = method
             req['@extra'] = util.generateRpcReqId()
             this.once(req['@extra'], (res) => {
-                if (res['@type'] == 'error') return rj(res)
+                if (res['@type'] == 'error') {
+                    Object.defineProperty(res, 'stack', {
+                        value: `Error ${res.code}: ${res.message}\nCaused by: ${method}\nParams: ${inspect(params)}\n${stack_trace}`,
+                        enumerable: false,
+                        configurable: false,
+                        writable: false
+                    })
+                    res.method = method
+                    res.params = params
+                    return rj(res)
+                }
                 rs(res)
             })
             lib.td_client_send(this._instance_id, JSON.stringify(req))
