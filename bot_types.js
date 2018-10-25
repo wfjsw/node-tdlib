@@ -719,7 +719,7 @@ class BotTypeConversion {
             _gif.title = gif.title
         }
         if (gif.reply_markup) {
-            _gif.reply_markup = _util.parseReplyMarkup(gif.reply_markup)
+            _gif.reply_markup = this.client._parseReplyMarkup(gif.reply_markup)
         }
         if (gif.input_message_content) {
             _gif.input_message_content = await this.buildTdlibInlineInputMessageContent(gif.input_message_content)
@@ -769,7 +769,7 @@ class BotTypeConversion {
             _mpeg4.title = mpeg4.title
         }
         if (mpeg4.reply_markup) {
-            _mpeg4.reply_markup = _util.parseReplyMarkup(mpeg4.reply_markup)
+            _mpeg4.reply_markup = this.client._parseReplyMarkup(mpeg4.reply_markup)
         }
         if (mpeg4.input_message_content) {
             _mpeg4.input_message_content = await this.buildTdlibInlineInputMessageContent(mpeg4.input_message_content)
@@ -818,7 +818,7 @@ class BotTypeConversion {
             _article.thumbnail_height = article.thumb_height
         }
         if (article.reply_markup) {
-            _article.reply_markup = _util.parseReplyMarkup(article.reply_markup)
+            _article.reply_markup = this.client._parseReplyMarkup(article.reply_markup)
         }
         if (article.input_message_content) {
             _article.input_message_content = await this.buildTdlibInlineInputMessageContent(article.input_message_content)
@@ -843,7 +843,7 @@ class BotTypeConversion {
             _audio.title = audio.title
         }
         if (audio.reply_markup) {
-            _audio.reply_markup = _util.parseReplyMarkup(audio.reply_markup)
+            _audio.reply_markup = this.client._parseReplyMarkup(audio.reply_markup)
         }
         if (audio.input_message_content) {
             _audio.input_message_content = await this.buildTdlibInlineInputMessageContent(audio.input_message_content)
@@ -894,7 +894,7 @@ class BotTypeConversion {
             _contact.title = contact.title
         }
         if (contact.reply_markup) {
-            _contact.reply_markup = _util.parseReplyMarkup(contact.reply_markup)
+            _contact.reply_markup = this.client._parseReplyMarkup(contact.reply_markup)
         }
         if (contact.input_message_content) {
             _contact.input_message_content = await this.buildTdlibInlineInputMessageContent(contact.input_message_content)
@@ -923,7 +923,7 @@ class BotTypeConversion {
             _document.description = document.description
         }
         if (document.reply_markup) {
-            _document.reply_markup = _util.parseReplyMarkup(document.reply_markup)
+            _document.reply_markup = this.client._parseReplyMarkup(document.reply_markup)
         }
         if (document.input_message_content) {
             _document.input_message_content = await this.buildTdlibInlineInputMessageContent(document.input_message_content)
@@ -947,7 +947,7 @@ class BotTypeConversion {
             game_short_name: game.game_short_name
         }
         if (game.reply_markup) {
-            _game.reply_markup = _util.parseReplyMarkup(game.reply_markup)
+            _game.reply_markup = this.client._parseReplyMarkup(game.reply_markup)
         }
         return _game
     }
@@ -977,7 +977,7 @@ class BotTypeConversion {
             _location.title = location.title
         }
         if (location.reply_markup) {
-            _location.reply_markup = _util.parseReplyMarkup(location.reply_markup)
+            _location.reply_markup = this.client._parseReplyMarkup(location.reply_markup)
         }
         if (location.input_message_content) {
             _location.input_message_content = await this.buildTdlibInlineInputMessageContent(location.input_message_content)
@@ -1017,7 +1017,7 @@ class BotTypeConversion {
             _photo.title = photo.title
         }
         if (photo.reply_markup) {
-            _photo.reply_markup = _util.parseReplyMarkup(photo.reply_markup)
+            _photo.reply_markup = this.client._parseReplyMarkup(photo.reply_markup)
         }
         if (photo.input_message_content) {
             _photo.input_message_content = await this.buildTdlibInlineInputMessageContent(photo.input_message_content)
@@ -1064,7 +1064,7 @@ class BotTypeConversion {
             _sticker.title = sticker.title
         }
         if (sticker.reply_markup) {
-            _sticker.reply_markup = _util.parseReplyMarkup(sticker.reply_markup)
+            _sticker.reply_markup = this.client._parseReplyMarkup(sticker.reply_markup)
         }
         if (sticker.input_message_content) {
             _sticker.input_message_content = await this.buildTdlibInlineInputMessageContent(sticker.input_message_content)
@@ -1115,7 +1115,7 @@ class BotTypeConversion {
             _venue.thumbnail_height = venue.thumb_height
         }
         if (venue.reply_markup) {
-            _venue.reply_markup = _util.parseReplyMarkup(venue.reply_markup)
+            _venue.reply_markup = this.client._parseReplyMarkup(venue.reply_markup)
         }
         if (venue.input_message_content) {
             _venue.input_message_content = await this.buildTdlibInlineInputMessageContent(venue.input_message_content)
@@ -1158,7 +1158,7 @@ class BotTypeConversion {
             _video.title = video.title
         }
         if (video.reply_markup) {
-            _video.reply_markup = _util.parseReplyMarkup(video.reply_markup)
+            _video.reply_markup = this.client._parseReplyMarkup(video.reply_markup)
         }
         if (video.input_message_content) {
             _video.input_message_content = await this.buildTdlibInlineInputMessageContent(video.input_message_content)
@@ -1202,7 +1202,7 @@ class BotTypeConversion {
             _voicenote.title = voicenote.title
         }
         if (voicenote.reply_markup) {
-            _voicenote.reply_markup = _util.parseReplyMarkup(voicenote.reply_markup)
+            _voicenote.reply_markup = this.client._parseReplyMarkup(voicenote.reply_markup)
         }
         if (voicenote.input_message_content) {
             _voicenote.input_message_content = await this.buildTdlibInlineInputMessageContent(voicenote.input_message_content)

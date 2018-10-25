@@ -294,7 +294,7 @@ class Bot extends lib.TdClientActor {
                 }
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
+                _opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
             } else if (options.preserve_reply_markup) {
                 if (orig_msg.reply_markup) {
                     _opt.reply_markup = orig_msg.reply_markup
@@ -311,7 +311,7 @@ class Bot extends lib.TdClientActor {
                 }
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
+                _opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
             }
             let ret = await this.run('editMessageLiveLocation', _opt)
             if (ret['@type'] == 'ok')
@@ -339,7 +339,7 @@ class Bot extends lib.TdClientActor {
                 location: null
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
+                _opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
             } else if (options.preserve_reply_markup) {
                 if (orig_msg.reply_markup) {
                     _opt.reply_markup = orig_msg.reply_markup
@@ -353,7 +353,7 @@ class Bot extends lib.TdClientActor {
                 location: null
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
+                _opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
             }
             let ret = await this.run('editMessageLiveLocation', _opt)
             if (ret['@type'] == 'ok')
@@ -774,7 +774,7 @@ class Bot extends lib.TdClientActor {
                 }
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
+                _opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
             } else if (options.preserve_reply_markup) {
                 if (orig_msg.reply_markup) {
                     _opt.reply_markup = orig_msg.reply_markup
@@ -792,7 +792,7 @@ class Bot extends lib.TdClientActor {
                 }
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
+                _opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
             }
             let ret = await this.run('editInlineMessageText', _opt)
             if (ret['@type'] == 'ok')
@@ -818,7 +818,7 @@ class Bot extends lib.TdClientActor {
                 caption: await this._generateFormattedText(caption, options.parse_mode)
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
+                _opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
             } else if (options.preserve_reply_markup) {
                 if (orig_msg.reply_markup) {
                     _opt.reply_markup = orig_msg.reply_markup
@@ -832,7 +832,7 @@ class Bot extends lib.TdClientActor {
                 caption: await this._generateFormattedText(caption, options.parse_mode)
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
+                _opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
             }
             let ret = await this.run('editInlineMessageCaption', _opt)
             if (ret['@type'] == 'ok')
@@ -858,7 +858,7 @@ class Bot extends lib.TdClientActor {
                 input_message_content: await this.conversion.buildTdlibMedia(media)
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
+                _opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
             } else if (options.preserve_reply_markup) {
                 if (orig_msg.reply_markup) {
                     _opt.reply_markup = orig_msg.reply_markup
@@ -872,7 +872,7 @@ class Bot extends lib.TdClientActor {
                 input_message_content: await this.conversion.buildTdlibMedia(media)
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
+                _opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
             }
             let ret = await this.run('editInlineMessageMedia', _opt)
             if (ret['@type'] == 'ok')
@@ -894,7 +894,7 @@ class Bot extends lib.TdClientActor {
             }
 
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
+                _opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
             }
             let ret = await this.run('editMessageReplyMarkup', _opt)
             return this.conversion.buildMessage(ret)
@@ -903,7 +903,7 @@ class Bot extends lib.TdClientActor {
                 inline_message_id: options.inline_message_id,
             }
             if (options.reply_markup) {
-                _opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
+                _opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
             }
             let ret = await this.run('editInlineMessageReplyMarkup', _opt)
             if (ret['@type'] == 'ok')
@@ -1346,7 +1346,7 @@ class Bot extends lib.TdClientActor {
             input_message_content: content
         }
         if (options.reply_markup) {
-            opt.reply_markup = _util.parseReplyMarkup(options.reply_markup, this._encrypt_callback_query)
+            opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
         }
         await self._initChatIfNeeded(chat_id)
         let old_msg = await self.run('sendMessage', opt)
@@ -1516,6 +1516,111 @@ class Bot extends lib.TdClientActor {
         }
         this._inited_chat.add(chat_id)
         return
+    }
+
+    _parseReplyMarkup(replymarkup) {
+        if ('inline_keyboard' in replymarkup) {
+            let keyboard = {
+                '@type': 'replyMarkupInlineKeyboard',
+                rows: []
+            }
+            for (let r of replymarkup.inline_keyboard) {
+                let colc = []
+                for (let c of r) {
+                    let col = {
+                        '@type': 'inlineKeyboardButton',
+                        text: c.text
+                    }
+                    if ('url' in c) {
+                        col.type = {
+                            '@type': 'inlineKeyboardButtonTypeUrl',
+                            url: c.url
+                        }
+                    } else if ('callback_data' in c) {
+                        col.type = {
+                            '@type': 'inlineKeyboardButtonTypeCallback',
+                        }
+                        if (this._encrypt_callback_query) {
+                            let data_buffer = Buffer.from(c.callback_data, 'utf8')
+                            if (data_buffer.length > 48) throw new Error('Payload too long. 48 bytes max.')
+                            const iv = crypto.randomBytes(16)
+                            let encryptor = crypto.createCipheriv('aes-256-cfb', this._encrypt_callback_query, iv)
+                            col.type.data = Buffer.concat([iv, encryptor.update(Buffer.from(c.callback_data, 'utf8')), encryptor.final()]).toString('base64')
+                        } else {
+                            col.type.data = Buffer.from(c.callback_data, 'utf8').toString('base64')
+                        }
+                    } else if ('switch_inline_query' in c) {
+                        col.type = {
+                            '@type': 'inlineKeyboardButtonTypeSwitchInline',
+                            query: c.switch_inline_query,
+                            in_current_chat: false
+                        }
+                    } else if ('switch_inline_query_current_chat' in c) {
+                        col.type = {
+                            '@type': 'inlineKeyboardButtonTypeSwitchInline',
+                            query: c.switch_inline_query_current_chat,
+                            in_current_chat: true
+                        }
+                    } else if ('callback_game' in c) {
+                        col.type = {
+                            '@type': 'inlineKeyboardButtonTypeCallbackGame',
+                        }
+                    } else if (c.pay) {
+                        col.type = {
+                            '@type': 'inlineKeyboardButtonTypeBuy'
+                        }
+                    }
+                    colc.push(col)
+                }
+                keyboard.rows.push(colc)
+            }
+            return keyboard
+        } else if ('keyboard' in replymarkup) {
+            let keyboard = {
+                '@type': 'replyMarkupShowKeyboard',
+                rows: [],
+                resize_keyboard: replymarkup.resize_keyboard,
+                one_time: replymarkup.one_time_keyboard,
+                is_personal: replymarkup.selective
+            }
+            for (let r of replymarkup.keyboard) {
+                let colc = []
+                for (let c of r) {
+                    let col = {
+                        '@type': 'keyboardButton',
+                        text: c.text
+                    }
+                    if (c.request_contact) {
+                        col.type = {
+                            '@type': 'keyboardButtonTypeRequestPhoneNumber',
+                        }
+                    } else if (c.request_location) {
+                        col.type = {
+                            '@type': 'keyboardButtonTypeRequestLocation'
+                        }
+                    } else {
+                        col.type = {
+                            '@type': 'keyboardButtonTypeText'
+                        }
+                    }
+                    colc.push(col)
+                }
+                keyboard.rows.push(colc)
+            }
+            return keyboard
+        } else if (replymarkup.remove_keyboard) {
+            let keyboard = {
+                '@type': 'replyMarkupRemoveKeyboard',
+                is_personal: replymarkup.selective
+            }
+            return keyboard
+        } else if (replymarkup.force_reply) {
+            let keyboard = {
+                '@type': 'replyMarkupForceReply',
+                is_personal: replymarkup.selective
+            }
+            return keyboard
+        }
     }
 }
 
