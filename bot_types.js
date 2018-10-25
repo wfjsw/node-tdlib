@@ -188,7 +188,9 @@ class BotTypeConversion {
                             })
                             bot_chat.pinned_message = await this.buildMessage(pin_msg_orig, true)
                         }
-                    } catch (e) {} 
+                    } catch (e) {
+                        // failed to get the pinned msg
+                    } 
 
                     if (additional_full.sticker_set_id && additional_full.sticker_set_id.toString() != '0') {
                         try {

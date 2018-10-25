@@ -64,8 +64,11 @@ exports.parseReplyMarkup = (replymarkup, encrypt_callback_query = false) => {
                         '@type': 'inlineKeyboardButtonTypeCallback',
                     }
                     if (encrypt_callback_query) {
-                        let encryptor = crypto.createCipheriv('aes-256-cfb', encrypt_callback_query, '0000000000000000')
-                        col.type.data = Buffer.concat([Buffer.from('0f0f', 'hex'), encryptor.update(Buffer.from(c.callback_data, 'utf8')), encryptor.final()]).toString('base64')
+                        let data_buffer = Buffer.from(c.callback_data, 'utf8')
+                        if (data_buffer.length > 48) throw new Error('payload too long. 48 bytes max.')
+                        const iv = crypto.randomBytes(16)
+                        let encryptor = crypto.createCipheriv('aes-256-cfb', encrypt_callback_query, iv)
+                        col.type.data = Buffer.concat([iv, encryptor.update(Buffer.from(c.callback_data, 'utf8')), encryptor.final()]).toString('base64')
                     } else {
                         col.type.data = Buffer.from(c.callback_data, 'utf8').toString('base64')
                     }

@@ -38,10 +38,10 @@ class Bot extends lib.TdClientActor {
         if (bot_token) {
             this.on('__updateAuthorizationState', async (update) => {
                 switch (update.authorization_state['@type']) {
-                    case 'authorizationStateWaitPhoneNumber':
-                        return this.run('checkAuthenticationBotToken', {
-                            token: bot_token
-                        })
+                case 'authorizationStateWaitPhoneNumber':
+                    return this.run('checkAuthenticationBotToken', {
+                        token: bot_token
+                    })
                 }
             })
         }
@@ -1159,7 +1159,7 @@ class Bot extends lib.TdClientActor {
         } else {
             _id = parseInt(_id)
         }
-        let ret = await this.run('deleteFile', {file_id: _id})
+        let ret = await this.run('deleteFile', { file_id: _id })
         if (ret['@type'] == 'ok')
             return true
         else throw ret
@@ -1219,12 +1219,12 @@ class Bot extends lib.TdClientActor {
         if (parse_mode) {
             let parser
             switch (parse_mode) {
-                case "Markdown":
-                    parser = 'textParseModeMarkdown'
-                    break
-                case "HTML":
-                    parser = 'textParseModeHTML'
-                    break
+            case "Markdown":
+                parser = 'textParseModeMarkdown'
+                break
+            case "HTML":
+                parser = 'textParseModeHTML'
+                break
             }
             if (parser) {
                 return this.run('parseTextEntities', {
@@ -1428,24 +1428,26 @@ class Bot extends lib.TdClientActor {
             evt.inline_message_id = update.inline_message_id
         }
         switch (update.payload['@type']) {
-            case 'callbackQueryPayloadData':
-                if (this._encrypt_callback_query) {
-                    let payload = Buffer.from(update.payload.data, 'base64')
-                    let magic = payload.slice(0, 2)
-                    if (magic.equals(Buffer.from('0f0f', 'hex'))) {
-                        let decryptor = crypto.createDecipheriv('aes-256-cfb', this._encrypt_callback_query, '0000000000000000')
-                        evt.data = Buffer.concat([decryptor.update(payload.slice(2)), decryptor.final()]).toString('utf8')
-                    } else {
-                        // magic not found
-                        evt.data = payload.toString('utf8')
-                    }
-                } else {
-                    evt.data = Buffer.from(update.payload.data, 'base64').toString('utf8')
+        case 'callbackQueryPayloadData':
+            if (this._encrypt_callback_query) {
+                let payload = Buffer.from(update.payload.data, 'base64')
+                try {
+                    let iv = payload.slice(0, 16)
+                    let decryptor = crypto.createDecipheriv('aes-256-cfb', this._encrypt_callback_query, iv)
+                    evt.data = Buffer.concat([decryptor.update(payload.slice(16)), decryptor.final()]).toString('utf8')
+                } catch (e) {
+                    console.error('callback payload decrypt failure')
+                    console.error(e.stack)
+                    // discard silently.
+                    return false
                 }
-                break
-            case 'callbackQueryPayloadGame':
-                evt.game_short_name = update.payload.game_short_name
-                break
+            } else {
+                evt.data = Buffer.from(update.payload.data, 'base64').toString('utf8')
+            }
+            break
+        case 'callbackQueryPayloadGame':
+            evt.game_short_name = update.payload.game_short_name
+            break
         }
         return this.emit('callback_query', evt)
     }
