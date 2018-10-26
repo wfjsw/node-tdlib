@@ -1,17 +1,16 @@
 {
   "name": "tdlib",
   "version": "1.3.0-2",
-  "description": "",
+  "description": "## Install",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "install": "node download_prebuilt || node build_binary",
     "compile": "node build_binary"
   },
-  "author": "",
+  "author": "wfjsw",
   "license": "UNLICENSED",
   "dependencies": {
-    "bindings": "^1.3.0",
     "cmake-js": "^4.0.1",
     "node-addon-api": "^1.5.0",
     "request": "^2.88.0",
@@ -25,5 +24,19 @@
     "commit": "patch370",
     "variant": "napi",
     "debug": false
-  }
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wfjsw/node-tdlib.git"
+  },
+  "keywords": [
+    "telegram",
+    "tdlib",
+    "bindings"
+  ],
+  "bugs": {
+    "url": "https://github.com/wfjsw/node-tdlib/issues"
+  },
+  "homepage": "https://github.com/wfjsw/node-tdlib#readme"
 }
