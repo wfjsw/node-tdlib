@@ -14,6 +14,8 @@ export default class Bot extends TdClientActor {
     public ready: boolean;
     private _inited_chat: Set<number>;
     protected conversion: BotTypes;
-    constructor(api_id: number, api_hash: string, bot_token: string, use_test_dc: boolean, identifier: string | null, options: IBotOptions | null);
-    getMe();
+    constructor(api_id: number, api_hash: string, bot_token: string, use_test_dc?: boolean, identifier?: string | null, options?: IBotOptions | null);
+    getMe(): Promise<BotAPITypes.IUser>;
+    sendMessage(chat_id: number, text: string, options: {disable_web_page_preview: boolean; reply_to_message_id: number; disable_notification: boolean; reply_markup: BotAPITypes.TReplyMarkup}): Promise<BotAPITypes.IMessage>;
+
 }

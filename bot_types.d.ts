@@ -4,6 +4,10 @@ import * as TDLibTypes from "./tdlib_types"
 
 export default class {
     constructor(TdClient: TdClientActor);
-    buildUser(user: TDLibTypes.IUser, out_full: boolean): Promise<BotAPITypes.IUser>;
+    buildUser(user: TDLibTypes.user, out_full: boolean): Promise<BotAPITypes.IUser>;
+    buildChat(chat: TDLibTypes.chat, out_full: boolean): Promise<BotAPITypes.IChat>;
+    buildMessage(message: TDLibTypes.message, follow_replies_level: number): Promise<BotAPITypes.IMessage>;
+    buildEntities(entities: TDLibTypes.TextEntities): Promise<BotAPITypes.IMessageEntity[]>;
+    buildAnimation(animation: TDLibTypes.animation): Promise<BotAPITypes.IMediaDocument>;
     
 }
