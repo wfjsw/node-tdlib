@@ -284,6 +284,18 @@ class BotTypeConversion {
             bot_message.media_group_id = message.media_group_id
         if ('views' in message)
             bot_message.views = message.views
+        if (message.via_bot_user_id) {
+            bot_message.via_bot_user_id = message.via_bot_user_id
+            try {
+                let via_bot = await this.client.run('getUser', {
+                    user_id: message.via_bot_user_id
+                })
+                bot_message.via_bot = await this.buildUser(via_bot, false)
+            } catch (e) {
+                // ignore
+            }
+        }
+        bot_message.author_signature = message.author_signature
         if (message.forward_info)
             switch (message.forward_info['@type']) {
                 case 'messageForwardedFromUser':
