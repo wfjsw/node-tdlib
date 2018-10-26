@@ -12,10 +12,7 @@
     },
     "rules": {
         "no-console": "off",
-        "indent": [
-            "warn",
-            4
-        ],
+        "indent": "off",
         "linebreak-style": [
             "warn",
             "unix"

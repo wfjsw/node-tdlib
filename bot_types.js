@@ -298,14 +298,15 @@ class BotTypeConversion {
         bot_message.author_signature = message.author_signature
         if (message.forward_info)
             switch (message.forward_info['@type']) {
-                case 'messageForwardedFromUser':
+                case 'messageForwardedFromUser': {
                     let fwd_user = await this.client.run('getUser', {
                         user_id: message.forward_info.sender_user_id
                     })
                     bot_message.forward_from = await this.buildUser(fwd_user, false)
                     bot_message.forward_date = message.forward_info.date
                     break
-                case 'messageForwardedPost':
+                }
+                case 'messageForwardedPost': {
                     let fwd_chat = await this.client.run('getChat', {
                         chat_id: message.forward_info.chat_id
                     })
@@ -314,6 +315,7 @@ class BotTypeConversion {
                     bot_message.forward_date = message.forward_info.date
                     bot_message.forward_signature = message.forward_info.author_signature
                     break
+                }
             }
         switch (message.content['@type']) {
             case 'messageText':
@@ -361,7 +363,7 @@ class BotTypeConversion {
             case 'messageVenue':
                 bot_message.venue = await this.buildVenue(message.content.venue)
                 break
-            case 'messageChatAddMembers':
+            case 'messageChatAddMembers': {
                 let new_members = []
                 for (let uid of message.content.member_user_ids) {
                     let new_member = await this.client.run('getUser', {
@@ -372,11 +374,12 @@ class BotTypeConversion {
                 bot_message.new_chat_members = new_members
                 bot_message.new_chat_member = new_members[0]
                 break
+            }
             case 'messageChatJoinByLink':
                 bot_message.new_chat_members = [bot_message.from]
                 bot_message.new_chat_member = bot_message.from
-                break
-            case 'messageChatDeleteMember':
+                break 
+            case 'messageChatDeleteMember': {
                 let left_member = await this.client.run('getUser', {
                     user_id: message.content.user_id
                 })
@@ -390,6 +393,7 @@ class BotTypeConversion {
                 // ^ got unbanned
 
                 break
+            }
             case 'messageChatChangeTitle':
                 bot_message.new_chat_title = message.content.title
                 break
@@ -399,7 +403,7 @@ class BotTypeConversion {
             case 'messageChatDeletePhoto':
                 bot_message.delete_chat_photo = true
                 break
-            case 'messageBasicGroupChatCreate':
+            case 'messageBasicGroupChatCreate': {
                 let new_created_members = []
                 for (let uid of message.content.member_user_ids) {
                     let new_member = await this.client.run('getUser', {
@@ -411,6 +415,7 @@ class BotTypeConversion {
                 bot_message.new_chat_member = new_created_members[0]
                 bot_message.group_chat_created = true
                 break
+            }
             case 'messageSupergroupChatCreate':
                 if (bot_message.chat.type == 'channel') bot_message.channel_chat_created = true
                 else bot_message.supergroup_chat_created = true
@@ -498,13 +503,14 @@ class BotTypeConversion {
                 case 'textEntityTypeMention':
                     _ent.type = 'mention'
                     break
-                case 'textEntityTypeMentionName':
+                case 'textEntityTypeMentionName': {
                     _ent.type = 'text_mention'
                     let mention_user = await this.client.run('getUser', {
                         user_id: entity.type.user_id
                     })
                     _ent.user = await this.buildUser(mention_user, false)
                     break
+                }
                 case 'textEntityTypePhoneNumber':
                     _ent.type = 'phone'
                     break

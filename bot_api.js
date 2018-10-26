@@ -739,7 +739,7 @@ class Bot extends lib.TdClientActor {
                 callback_query_id: arguments[0],
                 text: arguments[1],
                 show_alert: arguments[2],
-            };
+            }
         }
         /* The older method signature (in/before v0.29.0) was answerCallbackQuery([options]).
          * We need to ensure backwards-compatibility while maintaining
@@ -1219,10 +1219,10 @@ class Bot extends lib.TdClientActor {
         if (parse_mode) {
             let parser
             switch (parse_mode) {
-            case "Markdown":
+            case 'Markdown':
                 parser = 'textParseModeMarkdown'
                 break
-            case "HTML":
+            case 'HTML':
                 parser = 'textParseModeHTML'
                 break
             }
