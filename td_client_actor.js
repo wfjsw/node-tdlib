@@ -225,17 +225,6 @@ class TdClientActor extends EventEmitter {
         }
     }
 
-    async _cleanUploadedFile(update) {
-        if (!update.file.remote) return
-        if (!update.file.local) return
-        if (!update.file.local.path) return
-        if (!update.file.remote.is_uploading_completed) return
-        if (!update.file.local.path.match(/^\/tmp\/tdlib-/)) return
-        try {
-            await fsp.unlink(update.file.local.path)
-        } catch (e) { }
-    }
-
     _emitFileDownloadedEvent(update) {
         if (!update.file.local) return
         if (update.file.local.is_downloading_completed) {

@@ -69,6 +69,17 @@ class Bot extends lib.TdClientActor {
         this.on('__updateNewChosenInlineResult', (update) => {
             this._processIncomingChosenInlineResult.call(self, update)
         })
+        this.on('__updateOption', (update) => {
+            if (update.name == 'online' && update.value.value == false) {
+                return this.run('setOption', {
+                    name: 'online',
+                    value: {
+                        '@type': 'optionValueBoolean',
+                        value: true
+                    }
+                })
+            }
+        })
         this.once('ready', () => this.ready = true)
         this.once('ready', () => {
             this.run('setOption', {
