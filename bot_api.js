@@ -432,7 +432,7 @@ class Bot extends lib.TdClientActor {
             }
         }
         if (options.until_date && !options.kick_only) {
-            opt.status.banned_until_date = options.until_date
+            opt.status.banned_until_date = parseInt(options.until_date)
         }
         let ret = await this.run('setChatMemberStatus', opt)
         if (ret['@type'] == 'ok') return true
