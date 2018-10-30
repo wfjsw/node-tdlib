@@ -434,12 +434,14 @@ class Bot extends lib.TdClientActor {
     async kickChatMember(chat_id, user_id, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
+        user_id = await this._checkChatId(user_id)
         await this._initChatIfNeeded(chat_id)
         let opt = {
             chat_id,
             user_id,
             status: {
-                '@type': options.kick_only ? 'chatMemberStatusLeft' : 'chatMemberStatusBanned'
+                '@type': options.kick_only ? 'chatMemberStatusLeft' : 'chatMemberStatusBanned',
+                banned_until_date: 0
             }
         }
         if (options.until_date && !options.kick_only) {
@@ -453,6 +455,7 @@ class Bot extends lib.TdClientActor {
     async unbanChatMember(chat_id, user_id) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
+        user_id = await this._checkChatId(user_id)
         await this._initChatIfNeeded(chat_id)
         let opt = {
             chat_id,
@@ -469,6 +472,7 @@ class Bot extends lib.TdClientActor {
     async restrictChatMember(chat_id, user_id, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
+        user_id = await this._checkChatId(user_id)
         await this._initChatIfNeeded(chat_id)
         let opt = {
             chat_id,
@@ -493,6 +497,7 @@ class Bot extends lib.TdClientActor {
     async promoteChatMember(chat_id, user_id, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
+        user_id = await this._checkChatId(user_id)
         await this._initChatIfNeeded(chat_id)
         let opt = {
             chat_id,
