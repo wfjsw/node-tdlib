@@ -113,17 +113,29 @@ class TdClientActor extends EventEmitter {
             return
         }
         if (is_recursive && this._closed) return
-        if (!this._ready || this._closed) throw new Error('not ready or is closed')
-        let updates = lib.td_client_receive(this._instance_id, timeout)
+        if (this._closed) throw new Error('is closed')
+        if (!this._ready) return setTimeout(this._pollupdates.bind(this), 50, timeout, true)
+        let updates
+        try {
+            updates = lib.td_client_receive(this._instance_id, timeout)
+        } catch (e) {
+            console.error(e)
+            return setTimeout(this._pollupdates.bind(this), 50, timeout, true)
+
+        }
         if (updates.length > 0) {
             for (let update of updates) {
                 // console.log(update)
-                update = JSON.parse(update)
-                if (update['@type'] && update['@type'] != 'error') this.emit('__' + update['@type'], update)
-                if (update['@extra']) this.emit(update['@extra'], update)
+                try {
+                    update = JSON.parse(update)
+                    if (update['@type'] && update['@type'] != 'error') this.emit('__' + update['@type'], update)
+                    if (update['@extra']) this.emit(update['@extra'], update)
+                } catch (e) {
+                    console.error(e)
+                }
             }
         }
-        setTimeout(this._pollupdates.bind(this), 10, timeout, true)
+        setTimeout(this._pollupdates.bind(this), 50, timeout, true)
     }
 
     async _generateFile(update) {
