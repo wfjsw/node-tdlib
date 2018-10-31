@@ -13,9 +13,9 @@ class TdClientActor extends EventEmitter {
         super({
             wildcard: true
         })
-        this._ready = false
         this._closed = false
-        this._stop_poll = false
+        this._lastUpdateTime = 0
+        this._lastUpdate = {}
         this._options = options
         if (!options.api_id || !options.api_hash || !('identifier' in options)) throw new Error('missing api_id, api_hash or identifier')
         let tdlib_param = {
@@ -68,8 +68,11 @@ class TdClientActor extends EventEmitter {
             return this._emitFileDownloadedEvent(update)
         })
         this._instance_id = lib.td_client_create()
-        this._ready = true
-        setImmediate(this._pollupdates.bind(this), options.poll_timeout)
+        process.on('SIGUSR2', () => {
+            console.log('Last Update Time:', new Date(this._lastUpdateTime).toString())
+            console.log('Last Update:', require('util').inspect(this._lastUpdate))
+        })
+        setImmediate(this._pollupdates.bind(this), options.poll_timeout, false)
     }
 
     run(method, params = {}) {
@@ -108,22 +111,18 @@ class TdClientActor extends EventEmitter {
     }
 
     _pollupdates(timeout = 0, is_recursive = false) {
-        if (is_recursive && this._stop_poll) {
-            this._stop_poll = false
-            return
+        if (is_recursive && this._closed) {
+            console.log('Client closed. Stopping recursive update.')
         }
-        if (is_recursive && this._closed) return
         if (this._closed) throw new Error('is closed')
-        if (!this._ready) return setTimeout(this._pollupdates.bind(this), 50, timeout, true)
         let updates
         try {
             updates = lib.td_client_receive(this._instance_id, timeout)
         } catch (e) {
             console.error(e)
             return setTimeout(this._pollupdates.bind(this), 50, timeout, true)
-
         }
-        if (updates.length > 0) {
+        if (Array.isArray(updates) && updates.length > 0) {
             for (let update of updates) {
                 // console.log(update)
                 try {
@@ -134,8 +133,10 @@ class TdClientActor extends EventEmitter {
                     console.error(e)
                 }
             }
+            this._lastUpdateTime = Date.now()
+            this._lastUpdate = updates[updates.length - 1]
         }
-        setTimeout(this._pollupdates.bind(this), 50, timeout, true)
+        setTimeout(this._pollupdates.bind(this), 25, timeout, true)
     }
 
     async _generateFile(update) {
