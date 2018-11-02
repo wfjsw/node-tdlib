@@ -247,4 +247,4 @@ class TdClientActor extends EventEmitter {
     }
 }
 
-module.exports = TdClientActor
+exports.TdClientActor = TdClientActor

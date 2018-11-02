@@ -1,5 +1,5 @@
-import CBot from "./bot_api";
-import CTdClientActor from "./td_client_actor";
+import { Bot as CBot } from "./bot_api";
+import { TdClientActor as CTdClientActor } from "./td_client_actor";
 
 export as namespace tdlib;
 

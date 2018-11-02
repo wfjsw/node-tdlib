@@ -5,10 +5,10 @@ const fs = require('fs')
 const fsp = fs.promises
 const path = require('path')
 const crypto = require('crypto')
-const lib = require('./td_client_actor')
+const TdClientActor = require('./td_client_actor')
 const _util = require('./util')
 
-class Bot extends lib.TdClientActor {
+class Bot extends TdClientActor {
     constructor(api_id, api_hash, bot_token, use_test_dc = false, identifier = null, options = {}) {
         if (!api_id || !api_hash) throw new Error('missing api_id, api_hash')
         if (identifier === null) identifier = `bot${bot_token.split(':')[0]}`
@@ -67,8 +67,8 @@ class Bot extends lib.TdClientActor {
         this.on('__updateNewChosenInlineResult', (update) => {
             this._processIncomingChosenInlineResult.call(self, update)
         })
-        this.on('__updateOption', (update) => {
-            if (update.name == 'online' && update.value.value == false) {
+        setInterval(() => {
+            if (this._closed) {
                 return this.run('setOption', {
                     name: 'online',
                     value: {
@@ -1638,4 +1638,4 @@ class Bot extends lib.TdClientActor {
     }
 }
 
-module.exports = Bot
+exports.Bot = Bot

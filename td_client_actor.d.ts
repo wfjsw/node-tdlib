@@ -36,7 +36,7 @@ interface TdClientActorOptions {
     ignore_file_names?: boolean;
 }
 
-export default class TdClientActor {
+export class TdClientActor {
     protected _instance_id: number;
     protected _closed: boolean;
     protected _lastUpdateTime: number;
