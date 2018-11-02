@@ -5,7 +5,7 @@ const fs = require('fs')
 const fsp = fs.promises
 const path = require('path')
 const crypto = require('crypto')
-const TdClientActor = require('./td_client_actor')
+const { TdClientActor } = require('./td_client_actor')
 const _util = require('./util')
 
 class Bot extends TdClientActor {
@@ -68,7 +68,7 @@ class Bot extends TdClientActor {
             this._processIncomingChosenInlineResult.call(self, update)
         })
         setInterval(() => {
-            if (this._closed) {
+            if (!self._closed) {
                 return this.run('setOption', {
                     name: 'online',
                     value: {
@@ -77,7 +77,7 @@ class Bot extends TdClientActor {
                     }
                 })
             }
-        })
+        }, 10000)
         this.once('ready', () => this.ready = true)
         this.once('ready', () => {
             this.run('setOption', {
