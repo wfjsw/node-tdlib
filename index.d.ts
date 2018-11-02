@@ -1,13 +1,13 @@
-import _Bot from "./bot_api";
-import _TdClientActor from "./td_client_actor";
+import CBot from "./bot_api";
+import CTdClientActor from "./td_client_actor";
 
 export as namespace tdlib;
 
-export var Bot: _Bot;
+export var Bot: CBot;
 
-export var TdClientActor: _TdClientActor;
+export var TdClientActor: CTdClientActor;
 
-export interface Logger {
+declare interface ILogger {
     /**
      * Sets the path to the file to where the internal TDLib log will be written. By default TDLib writes logs to stderr or an OS specific log. Use this method to write the log to a file instead.
      * @param {string} file_path Path to a file where the internal TDLib log will be written. Use an empty path to switch back to the default logging behaviour.
@@ -26,7 +26,9 @@ export interface Logger {
     setLogVerbosityLevel(new_verbosity_level: number);
 }
 
-export interface TDLib {
+export var Logger: ILogger;
+
+declare interface ITDLib {
     /** 
      * Create a TDLib Client 
      * @returns {number} Return a sequence number for client identifier
@@ -66,3 +68,5 @@ export interface TDLib {
      */
     td_set_log_verbosity_level(new_verbosity_level: number);
 }
+
+export var TDLib: ITDLib;
