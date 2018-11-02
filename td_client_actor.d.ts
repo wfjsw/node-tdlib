@@ -1,4 +1,5 @@
 import { updateFileGenerationStart, updateFile } from "./tdlib_types";
+import { EventEmitter } from "events";
 
 interface TdClientActorOptions {
     identifier: string;
@@ -36,7 +37,7 @@ interface TdClientActorOptions {
     ignore_file_names?: boolean;
 }
 
-export class TdClientActor {
+export class TdClientActor extends EventEmitter {
     protected _instance_id: number;
     protected _closed: boolean;
     protected _lastUpdateTime: number;

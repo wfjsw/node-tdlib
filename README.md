@@ -89,13 +89,17 @@ interface TDLib {
 See [TDLib Documentation](https://core.telegram.org/tdlib/docs/annotated.html) for further reference.
 
 ```typescript
-class TdClientActor {
+class TdClientActor extends EventEmitter {
     constructor(options: TdClientActorOptions);
     run(method: string, params: object): Promise<object>;
     destroy(): Promise<void>;
-    private _pollupdates(timeout: number, is_recursive: false);
-    private _generateFile(update: updateFileGenerationStart);
-    private _emitFileDownloadedEvent(update: updateFile);
+
+    // Events:
+    // ready
+    // closed
+    // __<types>
+    // file_downloaded
+    // file_downloaded_<file_id>
 }
 
 interface TdClientActorOptions {
