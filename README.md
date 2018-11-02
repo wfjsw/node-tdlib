@@ -2,7 +2,7 @@
 
 ## Install
 
-### Using prebuilt binaries
+### Use prebuilt binaries
 
 ```
 npm i wfjsw/node-tdlib --save
@@ -135,7 +135,7 @@ interface TdClientActorOptions {
 ## Logger Interface 
 
 ```typescript
-export interface Logger {
+interface Logger {
     /**
      * Sets the path to the file to where the internal TDLib log will be written. 
      * By default TDLib writes logs to stderr or an OS specific log. 
