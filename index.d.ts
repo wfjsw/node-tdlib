@@ -32,7 +32,7 @@ declare interface ITDLib {
     /** 
      * Create a TDLib Client 
      * @returns {number} Return a sequence number for client identifier
-    */
+     */
     td_client_create(): number;
     /**
      * Destroy a TDLib Client
