@@ -8,8 +8,6 @@ const crypto = require('crypto')
 const lib = require('./td_client_actor')
 const _util = require('./util')
 
-lib.td_set_log_verbosity_level(2)
-
 class Bot extends lib.TdClientActor {
     constructor(api_id, api_hash, bot_token, use_test_dc = false, identifier = null, options = {}) {
         if (!api_id || !api_hash) throw new Error('missing api_id, api_hash')

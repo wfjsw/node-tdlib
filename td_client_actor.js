@@ -247,9 +247,4 @@ class TdClientActor extends EventEmitter {
     }
 }
 
-module.exports = {
-    TdClientActor,
-    td_set_log_file_path: lib.td_set_log_file_path,
-    td_set_log_max_file_size: lib.td_set_log_max_file_size,
-    td_set_log_verbosity_level: lib.td_set_log_verbosity_level
-}
+module.exports = TdClientActor

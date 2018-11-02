@@ -1,4 +1,4 @@
-import { TdClientActor } from "./td_client_actor";
+import TdClientActor from "./td_client_actor";
 import BotTypes from "./bot_types"
 
 import * as BotAPITypes from "./bot_api_types"

@@ -47,7 +47,7 @@ export enum EEntityType {
 }
 
 /** This object represents a Telegram user or bot. */
-export interface User {
+export type User = {
     /** Unique identifier for this user or bot */
     id: number;
     /** True, if this user is a bot */
@@ -63,7 +63,7 @@ export interface User {
 }
 
 /** This object represents a chat. */
-export interface Chat {
+export type Chat = {
     /** Unique identifier for this chat. This number may be greater than 32 bits and some programming languages may have difficulty/silent defects in interpreting it. But it is smaller than 52 bits, so a signed 64 bit integer or double-precision float type are safe for storing this identifier. */
     id: number;
     /** Type of chat, can be either “private”, “group”, “supergroup” or “channel” */
@@ -93,7 +93,7 @@ export interface Chat {
 }
 
 /** This object represents a message. */
-export interface Message {
+export type Message = {
     /** Unique message identifier inside this chat */
     message_id: number;
     /** Optional. Sender, empty for messages sent to channels */
@@ -186,7 +186,7 @@ export interface Message {
 }
 
 /** This object represents one special entity in a text message. For example, hashtags, usernames, URLs, etc. */
-export interface MessageEntity {
+export type MessageEntity = {
     /** Type of the entity. Can be mention (@username), hashtag, cashtag, bot_command, url, email, phone_number, bold (bold text), italic (italic text), code (monowidth string), pre (monowidth block), text_link (for clickable text URLs), text_mention (for users without usernames) */
     type: EEntityType;
     /** Offset in UTF-16 code units to the start of the entity */
@@ -200,7 +200,7 @@ export interface MessageEntity {
 }
 
 /** This object represents one size of a photo or a file / sticker thumbnail. */
-export interface PhotoSize {
+export type PhotoSize = {
     /** Unique identifier for this file */
     file_id: string;
     /** Photo width */
@@ -212,7 +212,7 @@ export interface PhotoSize {
 }
 
 /** This object represents an audio file to be treated as music by the Telegram clients. */
-export interface Audio {
+export type Audio = {
     /** Unique identifier for this file */
     file_id: string;
     /** Duration of the audio in seconds as defined by sender */
@@ -230,7 +230,7 @@ export interface Audio {
 }
 
 /** This object represents a general file (as opposed to photos, voice messages and audio files). */
-export interface Document {
+export type Document = {
     /** Unique file identifier */
     file_id: string;
     /** Optional. Document thumbnail as defined by sender */
@@ -244,7 +244,7 @@ export interface Document {
 }
 
 /** This object represents a video file. */
-export interface Video {
+export type Video = {
     /** Unique identifier for this file */
     file_id: string;
     /** Video width as defined by sender */
@@ -255,4 +255,124 @@ export interface Video {
     duration: number;
     /** Optional. Video thumbnail */
     thumb?: PhotoSize;
+    /** Optional. Original animation filename as defined by sender */
+    file_name?: string;
+    /** Optional. MIME type of the file as defined by sender */
+    mime_type?: string;
+    /** Optional. File size */
+    file_size?: number;
+}
+
+/** This object represents a voice note. */
+export type Voice = {
+    /** Unique identifier for this file */
+    file_id: string;
+    /** Duration of the audio in seconds as defined by sender */
+    duration?: number;
+    /** Optional. MIME type of the file as defined by sender */
+    mime_type?: string;
+    /** Optional. File size */
+    file_size?: number;
+}
+
+/** This object represents a video message (available in Telegram apps as of v.4.0). */
+export type VideoNote = {
+    /** Unique identifier for this file */
+    file_id: string;
+    /** Video width and height (diameter of the video message) as defined by sender */
+    length: number;
+    /** Duration of the video in seconds as defined by sender */
+    duration: number;
+    /** Optional. Video thumbnail */
+    thumb?: PhotoSize;
+    /** Optional. File size */
+    file_size?: number;
+}
+
+/** This object represents a phone contact. */
+export type Contact = {
+    /** Contact's phone number */
+    phone_number: string;
+    /** Contact's first name */
+    first_name: string;
+    /** Optional. Contact's last name */
+    last_name?: string;
+    /** Optional. Contact's user identifier in Telegram */
+    user_id?: number;
+    /** Optional. Additional data about the contact in the form of a vCard */
+    vcard?: string;
+}
+
+/** This object represents a point on the map. */
+export type Location = {
+    /** Longitude as defined by sender */
+    longitude: number;
+    /** Latitude as defined by sender */
+    latitude: number;
+}
+
+/** This object represents a venue. */
+export type Venue = {
+    /** Venue location */
+    location: Location;
+    /** Name of the venue */
+    title: string;
+    /** Address of the venue */
+    address: string;
+    /** Optional. Foursquare identifier of the venue */
+    foursquare_id?: string;
+    /** Optional. Foursquare type of the venue. (For example, “arts_entertainment/default”, “arts_entertainment/aquarium” or “food/icecream”.) */
+    foursquare_type?: string;
+}
+
+/** This object represent a user's profile pictures. */
+export type UserProfilePhotos = {
+    /** Total number of profile pictures the target user has */
+    total_count: number;
+    /** Requested profile pictures (in up to 4 sizes each) */
+    photos: PhotoSize[][];
+}
+
+/** This object represents a file ready to be downloaded. */
+export type File = {
+    /** Unique identifier for this file */
+    file_id: string;
+    /** Optional. File size, if known */
+    file_size?: number;
+    /** Optional. File path. */
+    file_path?: string;
+}
+
+/** This object represents a custom keyboard with reply options (see Introduction to bots for details and examples). */
+export type ReplyKeyboardMarkup = {
+    /** Array of button rows, each represented by an Array of KeyboardButton objects */
+    keyboard: KeyboardButton[][];
+    /** Optional. Requests clients to resize the keyboard vertically for optimal fit (e.g., make the keyboard smaller if there are just two rows of buttons). Defaults to false, in which case the custom keyboard is always of the same height as the app's standard keyboard. */
+    resize_keyboard?: boolean;
+    /** Optional. Requests clients to hide the keyboard as soon as it's been used. The keyboard will still be available, but clients will automatically display the usual letter-keyboard in the chat – the user can press a special button in the input field to see the custom keyboard again. Defaults to false. */
+    one_time_keyboard?: boolean;
+    /** Optional. Use this parameter if you want to show the keyboard to specific users only. Targets: 1) users that are @mentioned in the text of the Message object; 2) if the bot's message is a reply (has reply_to_message_id), sender of the original message.
+     * 
+     *  Example: A user requests to change the bot‘s language, bot replies to the request with a keyboard to select the new language. Other users in the group don’t see the keyboard. */
+    selective?: boolean;
+}
+
+/** This object represents one button of the reply keyboard. For simple text buttons String can be used instead of this object to specify text of the button. Optional fields are mutually exclusive. */
+export type KeyboardButton = {
+    /** Text of the button. If none of the optional fields are used, it will be sent as a message when the button is pressed */
+    text: string;
+    /** Optional. If True, the user's phone number will be sent as a contact when the button is pressed. Available in private chats only */
+    request_contact?: boolean;
+    /** Optional. If True, the user's current location will be sent when the button is pressed. Available in private chats only */
+    request_location?: boolean;
+}
+
+/** Upon receiving a message with this object, Telegram clients will remove the current custom keyboard and display the default letter-keyboard. By default, custom keyboards are displayed until a new keyboard is sent by a bot. An exception is made for one-time keyboards that are hidden immediately after the user presses a button (see ReplyKeyboardMarkup). */
+export type ReplyKeyboardRemove = {
+    /** Requests clients to remove the custom keyboard (user will not be able to summon this keyboard; if you want to hide the keyboard from sight but keep it accessible, use one_time_keyboard in ReplyKeyboardMarkup) */
+    remove_keyboard: true;
+    /** Optional. Use this parameter if you want to remove the keyboard for specific users only. Targets: 1) users that are @mentioned in the text of the Message object; 2) if the bot's message is a reply (has reply_to_message_id), sender of the original message.
+     *
+     *  Example: A user votes in a poll, bot returns confirmation message in reply to the vote and removes the keyboard for that user, while still showing the keyboard with poll options to users who haven't voted yet. */
+    selective?: boolean;
 }
