@@ -7,6 +7,15 @@ export var Bot: CBot;
 
 export var TdClientActor: CTdClientActor;
 
+declare enum ELoggerVerbosityLevel {
+    Fatal = 0,
+    Error = 1,
+    Warning = 2,
+    Info = 3,
+    Debug = 4, 
+    Verbose = 5
+}
+
 declare interface ILogger {
     /**
      * Sets the path to the file to where the internal TDLib log will be written. By default TDLib writes logs to stderr or an OS specific log. Use this method to write the log to a file instead.
@@ -23,7 +32,7 @@ declare interface ILogger {
      * Sets the verbosity level of the internal logging of TDLib. By default the TDLib uses a verbosity level of 5 for logging.
      * @param {number} new_verbosity_level New value of the verbosity level for logging. Value 0 corresponds to fatal errors, value 1 corresponds to errors, value 2 corresponds to warnings and debug warnings, value 3 corresponds to informational, value 4 corresponds to debug, value 5 corresponds to verbose debug, value greater than 5 and up to 1024 can be used to enable even more logging.
      */
-    setLogVerbosityLevel(new_verbosity_level: number);
+    setLogVerbosityLevel(new_verbosity_level: ELoggerVerbosityLevel);
 }
 
 export var Logger: ILogger;

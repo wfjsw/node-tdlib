@@ -12,13 +12,14 @@ NPM will automatically download the appropriate `tdlib.node` binary.
 
 If such binary is not found, it will fallback to compilation.
 
-List of available prebuilt binary is available [here](https://github.com/wfjsw/node-tdlib/releases).
+List of prebuilt binary is available [here](https://github.com/wfjsw/node-tdlib/releases).
 
 ### Compile on your own
 
 ```
 git clone https://github.com/wfjsw/node-tdlib.git
 cd node-tdlib
+npm i
 npm run compile
 npm ln
 ```

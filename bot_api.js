@@ -675,25 +675,29 @@ class Bot extends TdClientActor {
 
     async getChatMembersCount(chat_id) {
         if (!this.ready) throw new Error('Not ready.')
-        chat_id = await this._checkChatId(chat_id)
-        await this._initChatIfNeeded(chat_id)
-        let chat = await this.run('getChat', {
-            chat_id
-        })
-        if (chat.type['@type'] == 'chatTypeSupergroup') {
-            let additional_full = await this.run('getSupergroupFullInfo', {
-                supergroup_id: chat.type.supergroup_id
+        try {
+            chat_id = await this._checkChatId(chat_id)
+            await this._initChatIfNeeded(chat_id)
+            let chat = await this.run('getChat', {
+                chat_id
             })
-            return additional_full.member_count
-        } else if (chat.type['@type'] == 'chatTypeBasicGroup') {
-            let additional = await this.run('getBasicGroup', {
-                basic_group_id: chat.type.basic_group_id
-            })
-            return additional.member_count
-        } else if (chat.type['@type'] == 'chatTypePrivate') {
-            throw new Error('Not a group or a channel.')
-        } else {
-            throw new Error('Unknown Chat Type.')
+            if (chat.type['@type'] == 'chatTypeSupergroup') {
+                let additional_full = await this.run('getSupergroupFullInfo', {
+                    supergroup_id: chat.type.supergroup_id
+                })
+                return additional_full.member_count
+            } else if (chat.type['@type'] == 'chatTypeBasicGroup') {
+                let additional = await this.run('getBasicGroup', {
+                    basic_group_id: chat.type.basic_group_id
+                })
+                return additional.member_count
+            } else if (chat.type['@type'] == 'chatTypePrivate') {
+                throw new Error('Not a group or a channel.')
+            } else {
+                throw new Error('Unknown Chat Type.')
+            }
+        } catch (e) {
+            throw new Error(e.message)
         }
     }
 

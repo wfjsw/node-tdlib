@@ -1,49 +1,63 @@
-import { Invoice } from "./tdlib_types";
+import { Stream } from "stream";
 
-export enum EChatType {
-    "private",
-    "group",
-    "supergroup",
-    "channel",
+export const enum EChatType {
+    Private = "private",
+    Group = "group",
+    SuperGroup = "supergroup",
+    Channel = "channel",
 }
 
-export enum EChatAction {
-    "typing",
-    "upload_photo",
-    "record_video",
-    "upload_video",
-    "record_audio",
-    "upload_audio",
-    "upload_document",
-    "find_location",
-    "record_video_note",
-    "upload_video_note",
-    "find_contact",
-    "play_game",
+export const enum EChatAction {
+    Typing = "typing",
+    UploadingPhoto = "upload_photo",
+    RecordingVideo = "record_video",
+    UploadingVideo = "upload_video",
+    RecordingAudio = "record_audio",
+    UploadingAudio = "upload_audio",
+    UploadingDocument = "upload_document",
+    FindingLocation = "find_location",
+    RecordingVideoNote = "record_video_note",
+    UploadingVideoNote = "upload_video_note",
+    FindingContact = "find_contact",
+    PlayingName = "play_game",
 }
 
 /** Type of the entity. */
 export enum EEntityType {
     /** @username */
-    "mention",
-    "hashtag",
-    "cashtag",
-    "bot_command",
-    "url",
-    "email",
-    "phone_number",
+    Mention = "mention",
+    HashTag = "hashtag",
+    CashTag = "cashtag",
+    BotCommand = "bot_command",
+    Url = "url",
+    Email = "email",
+    PhoneNumber = "phone_number",
     /** bold text */
-    "bold",
+    Bold = "bold",
     /** italic text */
-    "italic",
+    Italic = "italic",
     /** monowidth string */
-    "code",
+    Code = "code",
     /** monowidth block */
-    "pre",
+    Preformatted = "pre",
     /** for clickable text URLs */
-    "text_link",
+    TextLink = "text_link",
     /** for users without usernames */
-    "text_mention",
+    TextMention = "text_mention",
+}
+
+export enum EChatMemberStatus {
+    Creator = "creator",
+    Administrator = "administrator",
+    Member = "member",
+    Restricted = "restricted",
+    Left = "left",
+    Banned = "kicked"
+}
+
+export enum EParseMode {
+    Markdown = "Markdown",
+    HTML = "HTML"
 }
 
 /** This object represents a Telegram user or bot. */
@@ -263,6 +277,12 @@ export type Video = {
     file_size?: number;
 }
 
+/** This object represents an animation file (GIF or H.264/MPEG-4 AVC video without sound). */
+export type Animation = {
+    /**  */
+    ***
+}
+
 /** This object represents a voice note. */
 export type Voice = {
     /** Unique identifier for this file */
@@ -375,4 +395,232 @@ export type ReplyKeyboardRemove = {
      *
      *  Example: A user votes in a poll, bot returns confirmation message in reply to the vote and removes the keyboard for that user, while still showing the keyboard with poll options to users who haven't voted yet. */
     selective?: boolean;
+}
+
+/** This object represents an inline keyboard that appears right next to the message it belongs to. */
+export type InlineKeyboardMarkup = {
+    /** Array of button rows, each represented by an Array of InlineKeyboardButton objects */
+    inline_keyboard: InlineKeyboardButton[][];
+}
+
+/** This object represents one button of an inline keyboard. You must use exactly one of the optional fields. */
+export type InlineKeyboardButton = {
+    /** Label text on the button */
+    text: string;
+    /** Optional. HTTP or tg:// url to be opened when button is pressed */
+    url?: string;
+    /** Optional. Data to be sent in a callback query to the bot when button is pressed, 1-64 bytes */
+    callback_data?: string;
+    /** 
+     * Optional. If set, pressing the button will prompt the user to select one of their chats, open that chat and insert the bot‘s username and the specified inline query in the input field. Can be empty, in which case just the bot’s username will be inserted.
+     *
+     * Note: This offers an easy way for users to start using your bot in inline mode when they are currently in a private chat with it. Especially useful when combined with switch_pm… actions – in this case the user will be automatically returned to the chat they switched from, skipping the chat selection screen.
+     */
+    switch_inline_query?: string;
+    /**
+     * Optional. If set, pressing the button will insert the bot‘s username and the specified inline query in the current chat's input field. Can be empty, in which case only the bot’s username will be inserted.
+     *
+     * This offers a quick way for the user to open your bot in inline mode in the same chat – good for selecting something from multiple options.
+     */
+    switch_inline_query_current_chat?: string;
+    /**
+     * Optional. Description of the game that will be launched when the user presses the button.
+     *
+     * NOTE: This type of button must always be the first button in the first row.
+     */
+    callback_game?: CallbackGame;
+    /**
+     * Optional. Specify True, to send a Pay button.
+     *
+     * NOTE: This type of button must always be the first button in the first row.
+     */
+    pay?: boolean;
+}
+
+/** This object represents an incoming callback query from a callback button in an inline keyboard. If the button that originated the query was attached to a message sent by the bot, the field message will be present. If the button was attached to a message sent via the bot (in inline mode), the field inline_message_id will be present. Exactly one of the fields data or game_short_name will be present. */
+export type CallbackQuery = {
+    /** Unique identifier for this query */
+    id: string;
+    /** Sender */
+    from: User;
+    /** Optional. Message with the callback button that originated the query. Note that message content and message date will not be available if the message is too old */
+    message?: Message;
+    /** Optional. Identifier of the message sent via the bot in inline mode, that originated the query. */
+    inline_message_id?: string;
+    /** Global identifier, uniquely corresponding to the chat to which the message with the callback button was sent. Useful for high scores in games. */
+    chat_instance: string;
+    /** Optional. Data associated with the callback button. Be aware that a bad client can send arbitrary data in this field. */
+    data?: string;
+    /** Optional. Short name of a Game to be returned, serves as the unique identifier for the game */
+    game_short_name: string;
+}
+
+/** Upon receiving a message with this object, Telegram clients will display a reply interface to the user (act as if the user has selected the bot‘s message and tapped ’Reply'). This can be extremely useful if you want to create user-friendly step-by-step interfaces without having to sacrifice privacy mode. */
+export type ForceReply = {
+    /** Shows reply interface to the user, as if they manually selected the bot‘s message and tapped ’Reply' */
+    force_reply: true;
+    /** Optional. Use this parameter if you want to force reply from specific users only. Targets: 1) users that are @mentioned in the text of the Message object; 2) if the bot's message is a reply (has reply_to_message_id), sender of the original message. */
+    selective?: boolean;
+}
+
+/** This object represents a chat photo. */
+export type ChatPhoto = {
+    /** Unique file identifier of small (160x160) chat photo. This file_id can be used only for photo download. */
+    small_file_id: string;
+    /** Unique file identifier of big (640x640) chat photo. This file_id can be used only for photo download. */
+    big_file_id: string;
+}
+
+/** This object contains information about one member of a chat. */
+export type ChatMember = {
+    /** Information about the user */
+    user: User;
+    /** The member's status in the chat. Can be “creator”, “administrator”, “member”, “restricted”, “left” or “kicked” */
+    status: EChatMemberStatus;
+    /** Optional. Restricted and kicked only. Date when restrictions will be lifted for this user, unix time */
+    until_date?: number;
+    /** Optional. Administrators only. True, if the bot is allowed to edit administrator privileges of that user */
+    can_be_edited?: boolean;
+    /** Optional. Administrators only. True, if the administrator can change the chat title, photo and other settings */
+    can_change_info?: boolean;
+    /** Optional. Administrators only. True, if the administrator can post in the channel, channels only */
+    can_post_messages?: boolean;
+    /** Optional. Administrators only. True, if the administrator can edit messages of other users and can pin messages, channels only */
+    can_edit_messages?: boolean;
+    /** Optional. Administrators only. True, if the administrator can delete messages of other users */
+    can_delete_messages?: boolean;
+    /** Optional. Administrators only. True, if the administrator can invite new users to the chat */
+    can_invite_users?: boolean;
+    /** Optional. Administrators only. True, if the administrator can restrict, ban or unban chat members */
+    can_restrict_members?: boolean;
+    /** Optional. Administrators only. True, if the administrator can pin messages, supergroups only */
+    can_pin_messages?: boolean;
+    /** Optional. Administrators only. True, if the administrator can add new administrators with a subset of his own privileges or demote administrators that he has promoted, directly or indirectly (promoted by administrators that were appointed by the user) */
+    can_promote_members?: boolean;
+    /** Optional. Restricted only. True, if the user can send text messages, contacts, locations and venues */
+    can_send_messages?: boolean;
+    /** Optional. Restricted only. True, if the user can send audios, documents, photos, videos, video notes and voice notes, implies can_send_messages */
+    can_send_media_messages?: boolean;
+    /** Optional. Restricted only. True, if the user can send animations, games, stickers and use inline bots, implies can_send_media_messages */
+    can_send_other_messages?: boolean;
+    /** Optional. Restricted only. True, if user may add web page previews to his messages, implies can_send_media_messages */
+    can_add_web_page_previews?: boolean;
+}
+
+/** Contains information about why a request was unsuccessful. */
+export type ResponseParameters = {
+    /** Optional. The group has been migrated to a supergroup with the specified identifier. This number may be greater than 32 bits and some programming languages may have difficulty/silent defects in interpreting it. But it is smaller than 52 bits, so a signed 64 bit integer or double-precision float type are safe for storing this identifier. */
+    migrate_to_chat_id?: number;
+    /** Optional. In case of exceeding flood control, the number of seconds left to wait before the request can be repeated */
+    retry_after?: number
+}
+
+/** This object represents the content of a media message to be sent.  */
+export type InputMedia = InputMediaAnimation | InputMediaDocument | InputMediaAudio | InputMediaPhoto | InputMediaVideo
+
+/** Represents a photo to be sent. */
+export type InputMediaPhoto = {
+    /** Type of the result, must be photo */
+    type: "photo";
+    /** File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass a Stream or Buffer or File Path to upload the file.*/
+    media: string | InputFile;
+    /** Optional. Caption of the photo to be sent, 0-1024 characters */
+    caption?: string;
+    /** Optional. Send Markdown or HTML, if you want Telegram apps to show bold, italic, fixed-width text or inline URLs in the media caption. */
+    parse_mode?: EParseMode;
+}
+
+/** Represents a video to be sent. */
+export type InputMediaVideo = {
+    /** Type of the result, must be video */
+    type: "video";
+    /** File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass a Stream or Buffer or File Path to upload the file.*/
+    media: string | InputFile;
+    /** Optional. Thumbnail of the file sent. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail‘s width and height should not exceed 90. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can’t be reused and can be only uploaded as a new file, so you can pass a Stream or Buffer or File Path to upload the file.*/
+    thumb?: InputFile;
+    /** Optional. Caption of the video to be sent, 0-1024 characters */
+    caption?: string;
+    /** Optional. Send Markdown or HTML, if you want Telegram apps to show bold, italic, fixed-width text or inline URLs in the media caption. */
+    parse_mode?: EParseMode;
+    /** Optional. Video width */
+    width?: number;
+    /** Optional. Video height */
+    height?: number
+    /** Optional. Video duration */
+    duration?: number;
+    /** Optional. Pass True, if the uploaded video is suitable for streaming */
+    supports_streaming?: boolean;
+}
+
+/** Represents an animation file (GIF or H.264/MPEG-4 AVC video without sound) to be sent. */
+export type InputMediaAnimation = {
+    /** Type of the result, must be animation */
+    type: "animation";
+    /** File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass a Stream or Buffer or File Path to upload the file.*/
+    media: string | InputFile;
+    /** Optional. Thumbnail of the file sent. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail‘s width and height should not exceed 90. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can’t be reused and can be only uploaded as a new file, so you can pass a Stream or Buffer or File Path to upload the file.*/
+    thumb?: InputFile;
+    /** Optional. Caption of the animation to be sent, 0-1024 characters */
+    caption?: string;
+    /** Optional. Send Markdown or HTML, if you want Telegram apps to show bold, italic, fixed-width text or inline URLs in the media caption. */
+    parse_mode?: EParseMode;
+    /** Optional. Animation width */
+    width?: number;
+    /** Optional. Animation height */
+    height?: number
+    /** Optional. Animation duration */
+    duration?: number;
+}
+
+/** Represents an audio file to be treated as music to be sent. */
+export type InputMediaAudio = {
+    /** Type of the result, must be audio */
+    type: "audio";
+    /** File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass a Stream or Buffer or File Path to upload the file.*/
+    media: string | InputFile;
+    /** Optional. Thumbnail of the file sent. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail‘s width and height should not exceed 90. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can’t be reused and can be only uploaded as a new file, so you can pass a Stream or Buffer or File Path to upload the file.*/
+    thumb?: InputFile;
+    /** Optional. Caption of the audio to be sent, 0-1024 characters */
+    caption?: string;
+    /** Optional. Send Markdown or HTML, if you want Telegram apps to show bold, italic, fixed-width text or inline URLs in the media caption. */
+    parse_mode?: EParseMode;
+    /** Optional. Duration of the audio in seconds */
+    duration?: number;
+    /** Optional. Performer of the audio */
+    performer?: string;
+    /** Optional. Title of the audio */
+    title?: string;
+}
+
+/** Represents a general file to be sent. */
+export type InputMediaDocument = {
+    /** Type of the result, must be document */
+    type: "document";
+    /** File to send. Pass a file_id to send a file that exists on the Telegram servers (recommended), pass an HTTP URL for Telegram to get a file from the Internet, or pass a Stream or Buffer or File Path to upload the file.*/
+    media: string | InputFile;
+    /** Optional. Thumbnail of the file sent. The thumbnail should be in JPEG format and less than 200 kB in size. A thumbnail‘s width and height should not exceed 90. Ignored if the file is not uploaded using multipart/form-data. Thumbnails can’t be reused and can be only uploaded as a new file, so you can pass a Stream or Buffer or File Path to upload the file.*/
+    thumb?: InputFile;
+    /** Optional. Caption of the document to be sent, 0-1024 characters */
+    caption?: string;
+    /** Optional. Send Markdown or HTML, if you want Telegram apps to show bold, italic, fixed-width text or inline URLs in the media caption. */
+    parse_mode?: EParseMode;
+}
+
+/** This object represents the contents of a file to be uploaded. Accepts Readable Stream, Buffer and Local file path. */
+export type InputFile = ReadableStream | Buffer | string;
+
+/** This object represents a game. Use BotFather to create and edit games, their short names will act as unique identifiers. */
+export type Game = {
+    /** Title of the game */
+    title: string;
+    /** Description of the game */
+    description: string;
+    /** Photo that will be displayed in the game message in chats. */
+    photo: PhotoSize[];
+    /** Optional. Brief description of the game or high scores included in the game message. Can be automatically edited to include current high scores for the game when the bot calls setGameScore, or manually edited using editMessageText. 0-4096 characters. */
+    text?: string;
+    /** Optional. Special entities that appear in text, such as usernames, URLs, bot commands, etc. */
+    text_entities?: MessageEntity[];
+    /** Optional. Animation that will be displayed in the game message in chats. Upload via BotFather */
+    animation?: Animation;
 }
