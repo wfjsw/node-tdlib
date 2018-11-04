@@ -168,6 +168,12 @@ class Bot extends TdClientActor {
             media.title = options.title
         if (options.performer)
             media.performer = options.performer
+        if (options.thumb) 
+            media.thumbnail = {
+                thumbnail: await this._prepareUploadFile(options.thumb),
+                width: 0,
+                height: 0
+            }
         return this._sendMessage(chat_id, media, options)
     }
 
@@ -179,6 +185,35 @@ class Bot extends TdClientActor {
         }
         if (options.caption)
             media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
+        if (options.thumb)
+            media.thumbnail = {
+                thumbnail: await this._prepareUploadFile(options.thumb),
+                width: 0,
+                height: 0
+            }
+        return this._sendMessage(chat_id, media, options)
+    }
+
+    async sendAnimation(chat_id, animation, options = {}, file_options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let media = {
+            '@type': 'inputMessageAnimation',
+            animation: await this._prepareUploadFile(animation, file_options.filename)
+        }
+        if (options.caption)
+            media.caption = await this._generateFormattedText(options.caption, options.parse_mode)
+        if (options.duration)
+            media.duration = options.duration
+        if (options.width)
+            media.width = options.width
+        if (options.height)
+            media.height = options.height
+        if (options.thumb)
+            media.thumbnail = {
+                thumbnail: await this._prepareUploadFile(options.thumb),
+                width: 0,
+                height: 0
+            }
         return this._sendMessage(chat_id, media, options)
     }
 
@@ -200,6 +235,12 @@ class Bot extends TdClientActor {
             media.supports_streaming = options.supports_streaming
         if (options.ttl)
             media.ttl = options.ttl
+        if (options.thumb)
+            media.thumbnail = {
+                thumbnail: await this._prepareUploadFile(options.thumb),
+                width: 0,
+                height: 0
+            }
         return this._sendMessage(chat_id, media, options)
     }
 
@@ -228,6 +269,12 @@ class Bot extends TdClientActor {
             media.duration = options.duration
         if (options.length)
             media.length = options.length
+        if (options.thumb)
+            media.thumbnail = {
+                thumbnail: await this._prepareUploadFile(options.thumb),
+                width: 0,
+                height: 0
+            }
         return this._sendMessage(chat_id, media, options)
     }
 
@@ -402,6 +449,7 @@ class Bot extends TdClientActor {
                 last_name: options.last_name || ''
             }
         }
+        if (options.vcard) media.contact.vcard = options.vcard
         return this._sendMessage(chat_id, media, options)
     }
 

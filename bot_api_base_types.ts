@@ -23,7 +23,7 @@ export const enum EChatAction {
 }
 
 /** Type of the entity. */
-export enum EEntityType {
+export const enum EEntityType {
     /** @username */
     Mention = "mention",
     HashTag = "hashtag",
@@ -46,7 +46,7 @@ export enum EEntityType {
     TextMention = "text_mention",
 }
 
-export enum EChatMemberStatus {
+export const enum EChatMemberStatus {
     Creator = "creator",
     Administrator = "administrator",
     Member = "member",
@@ -55,9 +55,16 @@ export enum EChatMemberStatus {
     Banned = "kicked"
 }
 
-export enum EParseMode {
+export const enum EParseMode {
     Markdown = "Markdown",
     HTML = "HTML"
+}
+
+export const enum EMaskPositionPoint {
+    Forehead = "forehead",
+    Eyes = "eyes",
+    Mouth = "mouth",
+    Chin = "chin"
 }
 
 /** This object represents a Telegram user or bot. */
@@ -624,3 +631,139 @@ export type Game = {
     /** Optional. Animation that will be displayed in the game message in chats. Upload via BotFather */
     animation?: Animation;
 }
+
+/** This object represents a sticker. */
+export type Sticker = {
+    /** Unique identifier for this file */
+    file_id: string;
+    /** Sticker width */
+    width: number;
+    /** Sticker height */
+    height: number;
+    /** Optional. Sticker thumbnail in the .webp or .jpg format */
+    thumb?: PhotoSize;
+    /** Optional. Emoji associated with the sticker */
+    emoji?: string;
+    /** Optional. Name of the sticker set to which the sticker belongs */
+    set_name?: string;
+    /** Optional. For mask stickers, the position where the mask should be placed */
+    mask_position?: MaskPosition;
+    /** Optional. File size */
+    file_size?: number
+}
+
+/** This object represents a sticker set. */
+export type StickerSet = {
+    /** Sticker set name */
+    name: string;
+    /** Sticker set title */
+    title: string;
+    /** True, if the sticker set contains masks */
+    contains_masks: boolean;
+    /** List of all set stickers */
+    stickers: Sticker[];
+}
+
+/** This object describes the position on faces where a mask should be placed by default. */
+export type MaskPosition = {
+    /** The part of the face relative to which the mask should be placed. One of “forehead”, “eyes”, “mouth”, or “chin”. */
+    point: EMaskPositionPoint;
+    /** Shift by X-axis measured in widths of the mask scaled to the face size, from left to right. For example, choosing -1.0 will place mask just to the left of the default mask position. */
+    x_shift: number;
+    /** Shift by Y-axis measured in heights of the mask scaled to the face size, from top to bottom. For example, 1.0 will place the mask just below the default mask position. */
+    y_shift: number;
+    /** Mask scaling coefficient. For example, 2.0 means double size. */
+    scale: number;
+}
+
+/** This object represents an incoming inline query. When the user sends an empty query, your bot could return some default or trending results. */
+export type InlineQuery = {
+    /** Unique identifier for this query */
+    id: string;
+    /** Sender */
+    from: User;
+    /** Optional. Sender location, only for bots that request user location */
+    location?: Location;
+    /** Text of the query (up to 512 characters) */
+    query: string;
+    /** Offset of the results to be returned, can be controlled by the bot */
+    offset: string;
+}
+
+/** This object represents one result of an inline query.  */
+export type InlineQueryResult = InlineQueryResultCachedAudio
+    | InlineQueryResultCachedDocument
+    | InlineQueryResultCachedGif
+    | InlineQueryREsultCachedMpeg4Gif
+    | InlineQueryResultCachedPhoto
+    | InlineQueryResultCachedSticker
+    | InlineQueryResultCachedVideo
+    | InlineQueryResultCachedVoice
+    | InlineQueryResultArticle
+    | InlineQueryResultAudio
+    | InlineQueryResultContact
+    | InlineQueryResultGame
+    | InlineQueryResultDocument
+    | InlineQueryResultGif
+    | InlineQueryResultLocation
+    | InlineQueryResultMpeg4Gif
+    | InlineQueryResultPhoto
+    | InlineQueryResultVenue
+    | InlineQueryResultVideo
+    | InlineQueryResultVoice
+
+/** Represents a link to an article or web page. */
+export type InlineQueryResultArticle = {
+    /** Type of the result, must be article */
+    type: "article";
+    /** Unique identifier for this result, 1-64 Bytes */
+    id: string;
+    /** Title of the result */
+    title: string;
+    /** Content of the message to be sent */
+    input_message_content: InputMessageContent;
+    /** Optional. Inline keyboard attached to the message */
+    reply_markup?: InlineKeyboardMarkup;
+    /** Optional. URL of the result */
+    url?: string;
+    /** Optional. Pass True, if you don't want the URL to be shown in the message */
+    hide_url?: boolean;
+    /** Optional. Short description of the result */
+    description?: string;
+    /** Optional. Url of the thumbnail for the result */
+    thumb_url?: string;
+    /** Optional. Thumbnail width */
+    thumb_width?: number;
+    /** Optional. Thumbnail height */
+    thumb_height?: number;
+}
+
+/** Represents a link to a photo. By default, this photo will be sent by the user with optional caption. Alternatively, you can use input_message_content to send a message with the specified content instead of the photo. */
+export type InlineQueryResultPhoto = {
+    /** Type of the result, must be photo */
+    type: "photo";
+    /** Unique identifier for this result, 1-64 Bytes */
+    id: string;
+    /** A valid URL of the photo. Photo must be in jpeg format. Photo size must not exceed 5MB */
+    photo_url: string;
+    /** Optional. URL of the thumbnail for the photo */
+    thumb_url?: string;
+    /** Optional. Width of the photo */
+    photo_width?: number;
+    /** Optional. Optional. Height of the photo */
+    photo_height?: number;
+    /** Title of the result */
+    title: string;
+    /** Optional. Short description of the result */
+    description?: string;
+    /** Optional. Caption of the photo to be sent, 0-1024 characters */
+    caption?: string;
+    /** Optional. Send Markdown or HTML, if you want Telegram apps to show bold, italic, fixed-width text or inline URLs in the media caption. */
+    parse_mode?: EParseMode;
+    /** Optional. Inline keyboard attached to the message */
+    reply_markup?: InlineKeyboardMarkup;
+    /** Content of the message to be sent */
+    input_message_content: InputMessageContent;
+}
+
+

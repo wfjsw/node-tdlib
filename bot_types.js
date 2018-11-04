@@ -629,7 +629,8 @@ class BotTypeConversion {
             phone_number: contact.phone_number,
             first_name: contact.first_name,
             last_name: contact.last_name,
-            user_id: contact.user_id
+            user_id: contact.user_id,
+            vcard: contact.vcard
         }
     }
 
@@ -898,6 +899,9 @@ class BotTypeConversion {
         }
         if (contact.last_name) {
             _contact.contact.last_name = contact.last_name
+        }
+        if (contact.vcard) {
+            _contact.contact.vcard = contact.vcard
         }
         if (contact.thumb_url) {
             _contact.thumbnail_url = contact.thumb_url
