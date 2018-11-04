@@ -29,6 +29,7 @@ class Bot extends TdClientActor {
         } else {
             this._encrypt_callback_query = false
         }
+        this._debug_encrypt_callback_query = !!options.debug_encrypt_callback_query
         let self = this
         this.ready = false
         this._inited_chat = new Set()
@@ -1501,9 +1502,11 @@ class Bot extends TdClientActor {
                     let iv = payload.slice(0, 16)
                     let decryptor = crypto.createDecipheriv('aes-256-cfb', this._encrypt_callback_query, iv)
                     evt.data = Buffer.concat([decryptor.update(payload.slice(16)), decryptor.final()]).toString('utf8')
-                } catch (e) {
-                    console.error('callback payload decrypt failure')
-                    console.error(e.stack)
+                } catch (e) { 
+                    if (this._debug_encrypt_callback_query) {
+                        console.error('callback payload decrypt failure')
+                        console.error(e.stack)
+                    }
                     // discard silently.
                     return false
                 }
