@@ -32,6 +32,8 @@ npm ln tdlib
 
 Dependencies: cmake, gperf, zlib, node >= 10.0.0, same OpenSSL(libssl-dev) version with Node.js
 
+You may check your Node.js Dependency by using `node -p process.versions`
+
 Be careful when use `gcc` and `g++` as they will use up to 8GB memory. `clang` compiler is preferred but not required. Using `clang` will result in less memory requirement on compilation.
 
 Optional Dependencies: ccache (will speed up subsequent compilation.)
