@@ -1202,7 +1202,7 @@ class Bot extends TdClientActor {
         if (priority < 1) priority = 1
         if (priority > 32) priority = 32
         return new Promise((rs, rj) => {
-            self.once(`file_downloaded_${_id}`, file => {
+            self.once(`_fileDownloaded:${_id}`, file => {
                 return rs({
                     file_id: file.id,
                     file_size: file.size,

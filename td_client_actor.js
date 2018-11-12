@@ -82,7 +82,7 @@ class TdClientActor extends EventEmitter {
             let req = params
             req['@type'] = method
             req['@extra'] = util.generateRpcReqId()
-            this.once(req['@extra'], (res) => {
+            this.once(`_update:${req['@extra']}`, (res) => {
                 if (res['@type'] == 'error') {
                     Object.defineProperty(res, 'stack', {
                         value: `Error ${res.code}: ${res.message}\nCaused by: ${method}\nParams: ${inspect(params)}\n${stack_trace}`,
@@ -128,7 +128,7 @@ class TdClientActor extends EventEmitter {
                 try {
                     update = JSON.parse(update)
                     if (update['@type'] && update['@type'] != 'error') this.emit('__' + update['@type'], update)
-                    if (update['@extra']) this.emit(update['@extra'], update)
+                    if (update['@extra']) this.emit(`_update:${update['@extra']}`, update)
                 } catch (e) {
                     console.error(e)
                 }
@@ -241,8 +241,8 @@ class TdClientActor extends EventEmitter {
     _emitFileDownloadedEvent(update) {
         if (!update.file.local) return
         if (update.file.local.is_downloading_completed) {
-            this.emit(`file_downloaded_${update.file.id}`, update.file)
-            this.emit('file_downloaded', update.file)
+            this.emit(`_fileDownloaded:${update.file.id}`, update.file)
+            this.emit('_fileDownloaded', update.file)
         }
     }
 }

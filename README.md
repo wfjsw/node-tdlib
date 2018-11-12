@@ -99,8 +99,8 @@ class TdClientActor extends EventEmitter {
     // ready
     // closed
     // __<types>
-    // file_downloaded
-    // file_downloaded_<file_id>
+    // _fileDownloaded
+    // _fileDownloaded:<file_id>
 }
 
 interface TdClientActorOptions {
