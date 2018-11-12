@@ -17,7 +17,7 @@ List of prebuilt binary is available [here](https://github.com/wfjsw/node-tdlib/
 ### Compile on your own
 
 ```
-git clone https://github.com/wfjsw/node-tdlib.git
+git clone https://github.com/wfjsw/node-tdlib.git --recurse-submodules
 cd node-tdlib
 npm i
 npm run compile
@@ -31,6 +31,8 @@ npm ln tdlib
 ```
 
 Dependencies: cmake, gperf, zlib, node >= 10.0.0, same OpenSSL(libssl-dev) version with Node.js
+
+You may check your Node.js Dependency by using `node -p process.versions`
 
 Be careful when use `gcc` and `g++` as they will use up to 8GB memory. `clang` compiler is preferred but not required. Using `clang` will result in less memory requirement on compilation.
 
