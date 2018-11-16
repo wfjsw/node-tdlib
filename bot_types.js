@@ -212,6 +212,7 @@ class BotTypeConversion {
                     bot_chat.can_set_username = additional_full.can_set_username
                     bot_chat.can_set_sticker_set = additional_full.can_set_sticker_set
                     bot_chat.is_all_history_available = additional_full.is_all_history_available
+                    bot_chat.invite_link = additional_full.invite_link
                     if (!isNaN(additional_full.migrate_from_chat_id))
                         bot_chat.migrate_from_chat_id = -additional_full.upgraded_from_basic_group_id
                 } catch (e) {
@@ -223,7 +224,7 @@ class BotTypeConversion {
                 basic_group_id: chat.type.basic_group_id
             })
             bot_chat.type = 'group'
-            bot_chat.status = await this.buildChatMember(additional.status)
+            bot_chat.status = additional.everyone_is_administrator ? { status: 'member' } : await this.buildChatMember(additional.status)
             bot_chat.all_members_are_administrators = additional.everyone_is_administrator
             bot_chat.is_active = additional.is_active
             bot_chat.member_count = additional.member_count
