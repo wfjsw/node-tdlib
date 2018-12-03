@@ -12,6 +12,7 @@ class Bot extends TdClientActor {
     constructor(api_id, api_hash, bot_token, use_test_dc = false, identifier = null, options = {}) {
         if (!api_id || !api_hash) throw new Error('missing api_id, api_hash')
         if (identifier === null) identifier = `bot${bot_token.split(':')[0]}`
+        const ignore_file_names = 'ignore_file_names' in options ? options.ignore_file_names : true
         super({
             api_id,
             api_hash,
@@ -20,7 +21,8 @@ class Bot extends TdClientActor {
             use_message_database: false,
             use_secret_chats: false,
             use_chat_info_database: false,
-            use_file_database: false
+            use_file_database: false,
+            ignore_file_names 
         })
         this.bot_id = parseInt(bot_token.split(':')[0])
         this._identifier = identifier
