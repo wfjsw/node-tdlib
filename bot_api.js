@@ -32,6 +32,8 @@ class Bot extends TdClientActor {
             this._encrypt_callback_query = false
         }
         this._debug_encrypt_callback_query = !!options.debug_encrypt_callback_query
+        this._username_cache_period = options.username_cache_period || 30 * 60 * 1000
+        this._username_cache = new Map()
         let self = this
         this.ready = false
         this._inited_chat = new Set()
@@ -510,7 +512,7 @@ class Bot extends TdClientActor {
             chat_id,
             user_id,
             status: {
-                '@type': 'chatMemberStatusLeft'
+                '@type': 'chatMemberStatusMember'
             }
         }
         let ret = await this.run('setChatMemberStatus', opt)
@@ -1314,21 +1316,35 @@ class Bot extends TdClientActor {
         }
     }
 
-    async _checkChatId(chat_id) {
+    async _checkChatId(chat_id) { // deopt
         if (isNaN(chat_id)) {
-            if (typeof chat_id != 'string') {
+            if (typeof chat_id !== 'string') {
                 throw new Error('chat_id is not a string nor number: ' + chat_id)
             }
             try {
-                return (await this.run('searchPublicChat', {
-                    username: chat_id.match(/^@?([a-zA-Z0-9_]+)$/)[0]
-                })).id
+                const username = chat_id.match(/^@?([a-zA-Z0-9_]+)$/)[0]
+                if (this._username_cache.has(username)) {
+                    const cached_chat = this._username_cache.get(username)
+                    if (Date.now() - cached_chat.timestamp < this._username_cache_period) return cached_chat.data.id
+                }
+                const resolved_chat = await this.run('searchPublicChat', {
+                    username
+                })
+                if (resolved_chat) {
+                    this._username_cache.set(username, {data: resolved_chat, timestamp: Date.now()})
+                } else {
+                    throw new Error('Not resolved.')
+                }
+                return resolved_chat.id
             } catch (e) {
+                if (e.message.indexOf('Too Many Requests') > -1) {
+                    throw e
+                }
+                console.error(e.stack)
                 throw new Error('cannot resolve name: ' + chat_id)
             }
         } else {
             return parseInt(chat_id)
-
         }
     }
 
