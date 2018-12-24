@@ -508,11 +508,12 @@ class Bot extends TdClientActor {
         chat_id = await this._checkChatId(chat_id)
         user_id = await this._checkChatId(user_id)
         await this._initChatIfNeeded(chat_id)
+        const is_member = await _checkIsMember(chat_id, user.id)
         let opt = {
             chat_id,
             user_id,
             status: {
-                '@type': 'chatMemberStatusMember'
+                '@type': is_member ? 'chatMemberStatusMember' : 'chatMemberStatusLeft'
             }
         }
         let ret = await this.run('setChatMemberStatus', opt)
@@ -1274,11 +1275,33 @@ class Bot extends TdClientActor {
     async _getChatMember(chat_id, user_id) {
         chat_id = await this._checkChatId(chat_id)
         user_id = await this._checkChatId(user_id)
+        await _initChatIfNeeded(chat_id)
         let cm = await this.run('getChatMember', {
             chat_id,
             user_id
         })
         return this.conversion.buildChatMember(cm)
+    }
+
+    async _checkIsMember(chat_id, user_id) {
+        chat_id = await this._checkChatId(chat_id)
+        user_id = await this._checkChatId(user_id)
+        await _initChatIfNeeded(chat_id)
+        let cm = await this.run('getChatMember', {
+            chat_id,
+            user_id
+        })
+        switch (cm.status['@type']) {
+            case 'chatMemberStatusCreator':
+            case 'chatMemberStatusRestricted':
+                return cm.status.is_member
+            case 'chatMemberStatusAdministrator':
+            case 'chatMemberStatusMember':
+                return true
+            case 'chatMemberStatusLeft':
+                return false
+        }
+        return false 
     }
 
     async _getMessage(message, follow_replies_level) {
