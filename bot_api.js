@@ -508,7 +508,7 @@ class Bot extends TdClientActor {
         chat_id = await this._checkChatId(chat_id)
         user_id = await this._checkChatId(user_id)
         await this._initChatIfNeeded(chat_id)
-        const is_member = await _checkIsMember(chat_id, user.id)
+        const is_member = await this._checkIsMember(chat_id, user_id)
         let opt = {
             chat_id,
             user_id,
@@ -1275,7 +1275,7 @@ class Bot extends TdClientActor {
     async _getChatMember(chat_id, user_id) {
         chat_id = await this._checkChatId(chat_id)
         user_id = await this._checkChatId(user_id)
-        await _initChatIfNeeded(chat_id)
+        await this._initChatIfNeeded(chat_id)
         let cm = await this.run('getChatMember', {
             chat_id,
             user_id
@@ -1286,7 +1286,7 @@ class Bot extends TdClientActor {
     async _checkIsMember(chat_id, user_id) {
         chat_id = await this._checkChatId(chat_id)
         user_id = await this._checkChatId(user_id)
-        await _initChatIfNeeded(chat_id)
+        await this._initChatIfNeeded(chat_id)
         let cm = await this.run('getChatMember', {
             chat_id,
             user_id
