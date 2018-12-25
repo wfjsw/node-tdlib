@@ -991,7 +991,7 @@ class Bot extends TdClientActor {
         if (!Array.isArray(message_ids)) message_ids = [message_ids]
         message_ids = message_ids.map((id) => _util.get_tdlib_message_id(id))
         // Load the messages to be deleted
-        const messages = await this._loadMessageBatch(message_ids)
+        const messages = await this._loadMessageBatch(chat_id, message_ids)
         // filter out messages can be deleted
         const to_be_deleted = messages.filter(m => m.can_be_deleted_for_all_users).map(m => m.id)
         if (to_be_deleted.length === 0) return true
@@ -1486,7 +1486,7 @@ class Bot extends TdClientActor {
         }
         await self._initChatIfNeeded(chat_id)
         // load replied message from server
-        if (opt.reply_to_message_id) await this._loadMessage(opt.reply_to_message_id)
+        if (opt.reply_to_message_id) await this._loadMessage(chat_id, opt.reply_to_message_id)
         let old_msg = await self.run('sendMessage', opt)
         return this._waitMessageTillSent(old_msg.id)
     }
