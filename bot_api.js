@@ -998,7 +998,7 @@ class Bot extends TdClientActor {
         if (to_be_deleted.length > 100) throw new Error('Too many messages.')
         let _opt = {
             chat_id,
-            to_be_deleted,
+            message_ids: to_be_deleted,
             revoke: true
         }
         let ret = await this.run('deleteMessages', _opt)
