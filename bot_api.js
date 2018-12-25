@@ -136,12 +136,10 @@ class Bot extends TdClientActor {
         await this._initChatIfNeeded(from_chat_id)
         let ret = await this.run('forwardMessages', opt)
         if (ret.total_count === 1) {
-            return this.conversion.buildMessage(ret.messages[0])
+            const final_msg = await this._waitMessageTillSent(ret.messages[0].id)
+            return this.conversion.buildMessage(final_msg)
         } else {
-            let _msgs = []
-            for (let m of ret.messages) {
-                _msgs.push(await this.conversion.buildMessage(m, 0))
-            }
+            let _msgs = await Promise.all(ret.messages.map(m => this._waitMessageTillSent(m.id)))
             return _msgs
         }
     }
@@ -992,9 +990,13 @@ class Bot extends TdClientActor {
         await this._initChatIfNeeded(chat_id)
         if (!Array.isArray(message_ids)) message_ids = [message_ids]
         message_ids = message_ids.map((id) => _util.get_tdlib_message_id(id))
+        // Load the messages to be deleted
+        const messages = await this._loadMessageBatch(message_ids)
+        // filter out messages can be deleted
+        const to_be_deleted = messages.filter(m => m.can_be_deleted_for_all_users).map(m => m.id)
         let _opt = {
             chat_id,
-            message_ids,
+            to_be_deleted,
             revoke: true
         }
         let ret = await this.run('deleteMessages', _opt)
@@ -1265,6 +1267,14 @@ class Bot extends TdClientActor {
         return this._getMessageByTdlibId(chat_id, _mid, follow_replies_level)
     }
 
+    async _loadMessageByAPIId(chat_id, message_id) {
+        return this._loadMessage(chat_id, _util.get_tdlib_message_id(message_id))
+    }
+
+    async _loadMessageBatchByAPIId(chat_id, message_ids) {
+        return this._loadMessage(chat_id, message_ids.map(m => _util.get_tdlib_message_id(m)))
+    }
+
     async _getMessageByTdlibId(chat_id, message_id, follow_replies_level) {
         let _msg = await this.run('getMessage', {
             chat_id,
@@ -1307,6 +1317,21 @@ class Bot extends TdClientActor {
 
     async _getMessage(message, follow_replies_level) {
         return this.conversion.buildMessage(message, follow_replies_level)
+    }
+
+    async _loadMessage(chat_id, message_id) {
+        return  this.run('getMessage', {
+            chat_id,
+            message_id
+        })
+    }
+
+    async _loadMessageBatch(chat_id, message_ids) {
+        const results = await this.run('getMessages', {
+            chat_id,
+            message_ids
+        })
+        return results.messages
     }
 
     async _generateFormattedText(text, parse_mode) {
@@ -1458,15 +1483,10 @@ class Bot extends TdClientActor {
             opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
         }
         await self._initChatIfNeeded(chat_id)
+        // load replied message from server
+        if (opt.reply_to_message_id) await this._loadMessage(opt.reply_to_message_id)
         let old_msg = await self.run('sendMessage', opt)
-        return new Promise(async (rs, rj) => {
-            self.once(`_msgSent:${old_msg.id}`, async (update) => {
-                rs(this._getMessage(update.message))
-            })
-            this.once(`_msgFail:${old_msg.id}`, async (update) => {
-                rj(update)
-            })
-        })
+        return this._waitMessageTillSent(old_msg.id)
     }
 
     async _sendMessageAlbum(chat_id, contents, options = {}) {
@@ -1627,6 +1647,18 @@ class Bot extends TdClientActor {
         }
         this._inited_chat.add(chat_id)
         return
+    }
+
+    _waitMessageTillSent(message_id) {
+        const self = this
+        return new Promise(async (rs, rj) => {
+            self.once(`_msgSent:${message_id}`, async (update) => {
+                rs(this._getMessage(update.message))
+            })
+            self.once(`_msgFail:${message_id}`, async (update) => {
+                rj(update)
+            })
+        })
     }
 
     _parseReplyMarkup(replymarkup) {
