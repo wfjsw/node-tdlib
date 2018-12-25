@@ -135,12 +135,12 @@ class Bot extends TdClientActor {
         await this._initChatIfNeeded(chat_id)
         await this._initChatIfNeeded(from_chat_id)
         let ret = await this.run('forwardMessages', opt)
-        if (ret.total_count == 1) {
+        if (ret.total_count === 1) {
             return this.conversion.buildMessage(ret.messages[0])
         } else {
             let _msgs = []
             for (let m of ret.messages) {
-                _msgs.push(await this.buildMessage(m, 0))
+                _msgs.push(await this.conversion.buildMessage(m, 0))
             }
             return _msgs
         }
@@ -1000,6 +1000,7 @@ class Bot extends TdClientActor {
         let ret = await this.run('deleteMessages', _opt)
         if (ret['@type'] == 'ok')
             return true
+        else throw ret
     }
 
     async sendSticker(chat_id, sticker, options = {}) {
