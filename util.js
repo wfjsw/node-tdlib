@@ -15,7 +15,7 @@ exports.get_tdlib_message_id = (msg_id) => {
 exports.get_api_message_id = (msg_id) => {
     let result = parseInt(msg_id) / Math.pow(2, 20)
     if (result * Math.pow(2, 20) === parseInt(msg_id)) return result
-    else throw new Error('Wrong message id.')
+    else throw new Error(`Wrong message id. Expect ${result * Math.pow(2, 20)}, got ${parseInt(msg_id)}`)
 }
 
 exports.scrypt = (password, salt, keylen) => new Promise((rs, rj) => crypto.scrypt(password, salt, keylen, (err, derivedKey) => {
