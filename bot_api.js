@@ -1497,6 +1497,7 @@ class Bot extends TdClientActor {
                 await this._loadMessage(chat_id, opt.reply_to_message_id)
             } catch (e) {
                 // fail to get message to reply
+                console.log(`Message to reply (${options.reply_to_message_id}) not found. ${e.message}`)
                 opt.reply_to_message_id = 0
             }
         }
