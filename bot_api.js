@@ -999,7 +999,7 @@ class Bot extends TdClientActor {
         // Load the messages to be deleted
         const messages = await this._loadMessageBatch(chat_id, message_ids)
         // filter out messages can be deleted
-        const to_be_deleted = messages.filter(m => m.can_be_deleted_for_all_users).map(m => m.id)
+        const to_be_deleted = messages.filter(m => m && m.can_be_deleted_for_all_users).map(m => m.id)
         if (to_be_deleted.length === 0) return true
         if (to_be_deleted.length > 100) throw new Error('Too many messages.')
         let _opt = {
