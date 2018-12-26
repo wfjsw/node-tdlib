@@ -49,10 +49,18 @@ class Bot extends TdClientActor {
             })
         }
         this.on('__updateMessageSendSucceeded', (update) => {
-            this.emit(`_msgSent:${update.old_message_id}`, update)
+            this.emit(`_sendMsg:${update.message.chat_id}:${update.old_message_id}`, {
+                ok: true,
+                message: update.message
+            })
         })
         this.on('__updateMessageSendFailed', (update) => {
-            this.emit(`_msgFail:${update.old_message_id}`, update)
+            this.emit(`_sendMsg:${update.message.chat_id}:${update.old_message_id}`, {
+                ok: false,
+                code: update.error_code,
+                error_message: update.error_message,
+                message: update.message
+            })
         })
         this.on('__updateNewMessage', (update) => {
             this._processIncomingUpdate.call(self, update.message)
@@ -136,11 +144,9 @@ class Bot extends TdClientActor {
         await this._initChatIfNeeded(from_chat_id)
         let ret = await this.run('forwardMessages', opt)
         if (ret.total_count === 1) {
-            const final_msg = await this._waitMessageTillSent(ret.messages[0].id)
-            return this.conversion.buildMessage(final_msg)
+            return this._waitMessageTillSent(chat_id, ret.messages[0].id)
         } else {
-            let _msgs = await Promise.all(ret.messages.map(m => this._waitMessageTillSent(m.id)))
-            return _msgs
+            return Promise.all(ret.messages.map(m => this._waitMessageTillSent(chat_id, m.id)))
         }
     }
 
@@ -1488,7 +1494,7 @@ class Bot extends TdClientActor {
         // load replied message from server
         if (opt.reply_to_message_id) await this._loadMessage(chat_id, opt.reply_to_message_id)
         let old_msg = await self.run('sendMessage', opt)
-        return this._waitMessageTillSent(old_msg.id)
+        return this._waitMessageTillSent(chat_id, old_msg.id)
     }
 
     async _sendMessageAlbum(chat_id, contents, options = {}) {
@@ -1503,18 +1509,7 @@ class Bot extends TdClientActor {
         }
         await self._initChatIfNeeded(chat_id)
         let old_msg = await self.run('sendMessageAlbum', opt)
-        return new Promise(async (rs, rj) => {
-            self.once(`_msgSent:${old_msg.id}`, async (update) => {
-                let msgs = []
-                for (let m of update.messages) {
-                    msgs.push(await this._getMessage(m))
-                }
-                rs(msgs)
-            })
-            this.once(`_msgFail:${old_msg.id}`, async (update) => {
-                rj(update)
-            })
-        })
+        return Promise.all(old_msg.messages.map(m => this._waitMessageTillSent(chat_id, m.id)))
     }
 
     async _processIncomingUpdate(message) {
@@ -1651,14 +1646,15 @@ class Bot extends TdClientActor {
         return
     }
 
-    _waitMessageTillSent(message_id) {
+    _waitMessageTillSent(chat_id, message_id) {
         const self = this
         return new Promise(async (rs, rj) => {
-            self.once(`_msgSent:${message_id}`, async (update) => {
-                rs(this._getMessage(update.message))
-            })
-            self.once(`_msgFail:${message_id}`, async (update) => {
-                rj(update)
+            self.once(`_sendMsg:${chat_id}:${message_id}`, async (update) => {
+                if (update.ok) {
+                    rs(this._getMessage(update.message))
+                } else {
+                    rj(new Error(`${update.code}: ${update.error_message}`))
+                }
             })
         })
     }
