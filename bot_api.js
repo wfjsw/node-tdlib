@@ -1492,7 +1492,14 @@ class Bot extends TdClientActor {
         }
         await self._initChatIfNeeded(chat_id)
         // load replied message from server
-        if (opt.reply_to_message_id) await this._loadMessage(chat_id, opt.reply_to_message_id)
+        if (opt.reply_to_message_id) {
+            try {
+                await this._loadMessage(chat_id, opt.reply_to_message_id)
+            } catch (e) {
+                // fail to get message to reply
+                opt.reply_to_message_id = 0
+            }
+        }
         let old_msg = await self.run('sendMessage', opt)
         return this._waitMessageTillSent(chat_id, old_msg.id)
     }
@@ -1508,6 +1515,15 @@ class Bot extends TdClientActor {
             input_message_contents: contents
         }
         await self._initChatIfNeeded(chat_id)
+        // load replied message from server
+        if (opt.reply_to_message_id) {
+            try {
+                await this._loadMessage(chat_id, opt.reply_to_message_id)
+            } catch (e) {
+                // fail to get message to reply
+                opt.reply_to_message_id = 0
+            }
+        }
         let old_msg = await self.run('sendMessageAlbum', opt)
         return Promise.all(old_msg.messages.map(m => this._waitMessageTillSent(chat_id, m.id)))
     }
