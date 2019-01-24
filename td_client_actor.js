@@ -16,6 +16,7 @@ class TdClientActor extends EventEmitter {
         this._closed = false
         this._lastUpdateTime = 0
         this._lastUpdate = {}
+        this._cache = new Map()
         this._options = options
         if (!options.api_id || !options.api_hash || !('identifier' in options)) throw new Error('missing api_id, api_hash or identifier')
         let tdlib_param = {
@@ -67,6 +68,28 @@ class TdClientActor extends EventEmitter {
         this.on('__updateFile', update => {
             return this._emitFileDownloadedEvent(update)
         })
+
+        this.on('__updateNewChat', update => this._writeCache('updateNewChat', update))
+        this.on('__updateUser', update => this._writeCache('updateUser', update))
+        this.on('__updateBasicGroup', update => this._writeCache('updateBasicGroup', update))
+        this.on('__updateSupergroup', update => this._writeCache('updateSupergroup', update))
+        this.on('__updateSecretChat', update => this._writeCache('updateSecretChat', update))
+        this.on('__updateChatTitle', update => this._writeCache('updateChatTitle', update))
+        this.on('__updateChatPhoto', update => this._writeCache('updateChatPhoto', update))
+        this.on('__updateChatLastMessage', update => this._writeCache('updateChatLastMessage', update))
+        this.on('__updateChatOrder', update => this._writeCache('updateChatOrder', update))
+        this.on('__updateChatReadInbox', update => this._writeCache('updateChatReadInbox', update))
+        this.on('__updateChatReadOutbox', update => this._writeCache('updateChatReadOutbox', update))
+        this.on('__updateChatReplyMarkup', update => this._writeCache('updateChatReplyMarkup', update))
+        this.on('__updateChatDraftMessage', update => this._writeCache('updateChatDraftMessage', update))
+        this.on('__updateChatNotificationSettings', update => this._writeCache('updateChatNotificationSettings', update))
+        this.on('__updateChatUnreadMentionCount', update => this._writeCache('updateChatUnreadMentionCount', update))
+        this.on('__updateChatIsPinned', update => this._writeCache('updateChatIsPinned', update))
+        this.on('__updateChatDefaultDisableNotification', update => this._writeCache('updateChatDefaultDisableNotification', update))
+        this.on('__updateChatIsSponsored', update => this._writeCache('updateChatIsSponsored', update))
+        this.on('__updateChatIsMarkedAsUnread', update => this._writeCache('updateChatIsMarkedAsUnread', update))
+        this.on('__updateUserStatus', update => this._writeCache('updateUserStatus', update))
+
         this._instance_id = lib.td_client_create()
         process.on('SIGUSR2', () => {
             console.log('Last Update Time:', new Date(this._lastUpdateTime).toString())
@@ -77,6 +100,11 @@ class TdClientActor extends EventEmitter {
 
     run(method, params = {}) {
         let stack_trace = new Error().stack.split('\n').slice(1).join('\n')
+        const is_cacheable = this._isCacheable(method)
+        if (is_cacheable) {
+            const cache = this._readCache(method, params)
+            if (cache) return Promise.resolve(cache)
+        }
         return new Promise((rs, rj) => {
             if (this._closed) throw new Error('already destroyed')
             let req = params
@@ -110,33 +138,35 @@ class TdClientActor extends EventEmitter {
 
     }
 
-    _pollupdates(timeout = 0, is_recursive = false) {
+    _pollupdates(timeout = 5000, is_recursive = false) {
         if (is_recursive && this._closed) {
             console.log('Client closed. Stopping recursive update.')
         }
         if (this._closed) throw new Error('is closed')
-        let updates
-        try {
-            updates = lib.td_client_receive(this._instance_id, timeout)
-        } catch (e) {
-            console.error(e)
-            return setTimeout(this._pollupdates.bind(this), 50, timeout, true)
-        }
-        if (Array.isArray(updates) && updates.length > 0) {
-            for (let update of updates) {
-                // console.log(update)
-                try {
-                    update = JSON.parse(update)
-                    if (update['@type'] && update['@type'] != 'error') this.emit('__' + update['@type'], update)
-                    if (update['@extra']) this.emit(`_update:${update['@extra']}`, update)
-                } catch (e) {
-                    console.error(e)
-                }
+        lib.td_client_receive_async(this._instance_id, timeout, (err, res) => {
+            if (err) {
+                console.error(err)
+                return setTimeout(this._pollupdates.bind(this), 50, timeout, true)
             }
-            this._lastUpdateTime = Date.now()
-            this._lastUpdate = updates[updates.length - 1]
-        }
-        setTimeout(this._pollupdates.bind(this), 25, timeout, true)
+            // console.log(update)
+            try {
+                const update = JSON.parse(res)
+                const extra = update['@extra'] || ''
+                delete update['@extra']
+
+                if (update['@type'] && update['@type'] !== 'error') {
+                    this.emit('__' + update['@type'], update)
+                }
+                if (extra) {
+                    this.emit(`_update:${extra}`, update)
+                }
+                this._lastUpdateTime = Date.now()
+                this._lastUpdate = update
+            } catch (e) {
+                console.error(e)
+            }
+            setImmediate(this._pollupdates.bind(this), timeout, true)
+        })
     }
 
     async _generateFile(update) {
@@ -245,6 +275,105 @@ class TdClientActor extends EventEmitter {
             this.emit('_fileDownloaded', update.file)
         }
     }
+
+    // Cache System Start
+
+    _isCacheable(key) {
+        return ['getChat', 'getUser', 'getBasicGroup', 'getSupergroup', 'getSecretChat'].indexOf(key) > -1
+    }
+
+    _readCache(name, options) {
+        if (name === 'getChat') {
+            const key = `chat:${options.chat_id}`
+            if (!this._cache.has(key)) return false
+            return this._cache.get(key)
+        } else if (name === 'getUser') {
+            const key = `user:${options.user_id}`
+            if (!this._cache.has(key)) return false
+            return this._cache.get(key)
+        } else if (name === 'getBasicGroup') {
+            const key = `basicgroup:${options.basic_group_id}`
+            if (!this._cache.has(key)) return false
+            return this._cache.get(key)
+        } else if (name === 'getSupergroup') {
+            const key = `supergroup:${options.supergroup_id}`
+            if (!this._cache.has(key)) return false
+            return this._cache.get(key)
+        } else if (name === 'getSecretChat') {
+            const key = `secretchat:${options.secret_chat_id}`
+            if (!this._cache.has(key)) return false
+            return this._cache.get(key)
+        } else {
+            return false
+        }
+    }
+
+    _writeCache(name, data) {
+        if (name === 'updateNewChat') {
+            this._cache.set(`chat:${data.chat.id}`, data.chat)
+        } else if (name === 'updateUser') {
+            this._cache.set(`user:${data.user.id}`, data.user)
+        } else if (name === 'updateBasicGroup') {
+            this._cache.set(`basicgroup:${data.basic_group.id}`, data.basic_group)
+        } else if (name === 'updateSupergroup') {
+            this._cache.set(`supergroup:${data.supergroup.id}`, data.supergroup)
+        } else if (name === 'updateSecretChat') {
+            this._cache.set(`secretchat:${data.secret_chat.id}`, data.secret_chat)
+        } else if (name === 'updateChatTitle') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.title = data.title
+        } else if (name === 'updateChatPhoto') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.photo = data.photo
+        } else if (name === 'updateChatLastMessage') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.last_message = data.last_message
+            cache.order = data.order
+        } else if (name === 'updateChatOrder') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.order = data.order
+        } else if (name === 'updateChatReadInbox') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.last_read_inbox_message_id = data.last_read_inbox_message_id
+            cache.unread_count = data.unread_count
+        } else if (name === 'updateChatReadOutbox') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.last_read_outbox_message_id = data.last_read_outbox_message_id
+        } else if (name === 'updateChatReplyMarkup') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.reply_markup_message_id = data.reply_markup_message_id
+        } else if (name === 'updateChatDraftMessage') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.draft_message = data.draft_message        
+            cache.order = data.order
+        } else if (name === 'updateChatNotificationSettings') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.notification_settings = data.notification_settings
+        } else if (name === 'updateChatUnreadMentionCount') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.unread_mention_count = data.unread_mention_count
+        } else if (name === 'updateChatIsPinned') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.is_pinned = data.is_pinned
+            cache.order = data.order
+        } else if (name === 'updateChatDefaultDisableNotification') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.default_disable_notification = data.default_disable_notification
+        } else if (name === 'updateChatIsSponsored') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.is_sponsored = data.is_sponsored
+            cache.order = data.order
+        } else if (name === 'updateChatIsMarkedAsUnread') {
+            const cache = this._cache.get(`chat:${data.chat_id}`)
+            cache.is_marked_as_unread = data.is_marked_as_unread
+        } else if (name === 'updateUserStatus') {
+            const cache = this._cache.get(`user:${data.user_id}`)
+            cache.status = data.status
+        }
+    }
+
+    // Cache System End
+
 }
 
 exports.TdClientActor = TdClientActor
