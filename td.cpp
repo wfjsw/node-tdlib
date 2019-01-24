@@ -45,7 +45,7 @@ class ReceiverAsyncWorker : public Napi::AsyncWorker {
         void OnOK() override {
             Napi::Env env = Env();
             auto str = Napi::String::New(env, res == NULL ? "" : res);
-            Callback().MakeCallback(Receiver.Value(), {env.Null(), str});
+            Callback().MakeCallback(Receiver().Value(), {env.Null(), str});
         }
 
         void OnError(const Napi::Error &e) override {
@@ -70,9 +70,8 @@ void td_client_receive_async(const Napi::CallbackInfo& info) {
 // param 2: double timeout
 Napi::Array td_client_receive(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
-    int client_id = (int) info[0].As<Napi::Number>().Int32Value();
+    auto client = (void *)info[0].As<Napi::Number>().Int64Value();
     double timeout = (double) info[1].As<Napi::Number>().DoubleValue();
-    void* client = clients.at(client_id);
     Napi::Array datas = Napi::Array::New(env);
     const char* data = td_json_client_receive(client, timeout);
     int length = 0;
@@ -93,7 +92,7 @@ Napi::Boolean set_log_file_path(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     std::string file_path = info[0].As<Napi::String>().Utf8Value();
     bool result = td_set_log_file_path(file_path.c_str());
-    return Napi::Boolean::New(env, result)
+    return Napi::Boolean::New(env, result);
 }
 
 void set_log_max_file_size(const Napi::CallbackInfo& info) {
