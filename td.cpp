@@ -57,7 +57,7 @@ class ReceiverAsyncWorker : public Napi::AsyncWorker {
         void *client;
         double timeout;
         const char *res;
-}
+};
 
 void td_client_receive_async(const Napi::CallbackInfo& info) {
     auto client = (void*) info[0].As<Napi::Number>().Int64Value();
