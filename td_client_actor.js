@@ -145,33 +145,68 @@ class TdClientActor extends EventEmitter {
             console.log('Client closed. Stopping recursive update.')
         }
         if (this._closed) throw new Error('is closed')
-        lib.td_client_receive_async(this._instance_id, timeout, (err, res) => {
-            if (err) {
-                console.error(err)
-                return setTimeout(this._pollupdates.bind(this), 50, timeout, true)
-            }
-            if (res === '') {
-                return setImmediate(this._pollupdates.bind(this), timeout, true)
-            }
-            // console.log(update)
+        if (this._options.async_polling) {
+            lib.td_client_receive_async(this._instance_id, timeout, (err, res) => {
+                if (err) {
+                    console.error(err)
+                    return setTimeout(this._pollupdates.bind(this), 50, timeout, true)
+                }
+                if (res === '') {
+                    return setImmediate(this._pollupdates.bind(this), timeout, true)
+                }
+                // console.log(update)
+                try {
+                    const update = JSON.parse(res)
+                    const extra = update['@extra'] || ''
+
+                    if (update['@type'] && update['@type'] !== 'error') {
+                        this.emit('__' + update['@type'], update)
+                    }
+                    delete update['@extra']
+                    if (extra) {
+                        this.emit(`_update:${extra}`, update)
+                    }
+                    this._lastUpdateTime = Date.now()
+                    this._lastUpdate = update
+                } catch (e) {
+                    console.error(e)
+                }
+                setImmediate(this._pollupdates.bind(this), timeout, true)
+            })
+        } else {
+            timeout = 0 // force timeout to be 0 to avoid main thread block
+            let updates
             try {
-                const update = JSON.parse(res)
-                const extra = update['@extra'] || ''
-                
-                if (update['@type'] && update['@type'] !== 'error') {
-                    this.emit('__' + update['@type'], update)
-                }
-                delete update['@extra']
-                if (extra) {
-                    this.emit(`_update:${extra}`, update)
-                }
-                this._lastUpdateTime = Date.now()
-                this._lastUpdate = update
+                updates = lib.td_client_receive(this._instance_id, timeout)
             } catch (e) {
                 console.error(e)
+                return setTimeout(this._pollupdates.bind(this), 50, timeout, true)
             }
-            setImmediate(this._pollupdates.bind(this), timeout, true)
-        })
+            if (Array.isArray(updates) && updates.length > 0) {
+                for (let u of updates) {
+                    // console.log(update)
+                    try {
+                        const update = JSON.parse(u)
+                        const extra = update['@extra'] || ''
+
+                        if (update['@type'] && update['@type'] !== 'error') {
+                            this.emit('__' + update['@type'], update)
+                        }
+                        delete update['@extra']
+                        if (extra) {
+                            this.emit(`_update:${extra}`, update)
+                        }
+                        this._lastUpdateTime = Date.now()
+                        this._lastUpdate = update
+                    } catch (e) {
+                        console.error(e)
+                    }
+                }
+                this._lastUpdateTime = Date.now()
+                this._lastUpdate = updates[updates.length - 1]
+            }
+            setTimeout(this._pollupdates.bind(this), 20, timeout, true)
+        }
     }
 
     async _generateFile(update) {
