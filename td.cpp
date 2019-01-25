@@ -39,12 +39,13 @@ class ReceiverAsyncWorker : public Napi::AsyncWorker {
     
     protected: 
         void Execute() override {
-            res = td_json_client_receive(client, timeout);
+            const char* result = td_json_client_receive(client, timeout);
+            res = std::string(result == NULL ? "" : result);
         }
 
         void OnOK() override {
             Napi::Env env = Env();
-            auto str = Napi::String::New(env, res == NULL ? "" : res);
+            auto str = Napi::String::New(env, res);
             Callback().MakeCallback(Receiver().Value(), {env.Null(), str});
         }
 
@@ -56,7 +57,7 @@ class ReceiverAsyncWorker : public Napi::AsyncWorker {
     private:
         void *client;
         double timeout;
-        const char *res;
+        std::string res;
 };
 
 void td_client_receive_async(const Napi::CallbackInfo& info) {

@@ -103,7 +103,9 @@ class TdClientActor extends EventEmitter {
         const is_cacheable = this._isCacheable(method)
         if (is_cacheable) {
             const cache = this._readCache(method, params)
-            if (cache) return Promise.resolve(cache)
+            if (cache !== undefined) {
+                return Promise.resolve(cache)
+            }
         }
         return new Promise((rs, rj) => {
             if (this._closed) throw new Error('already destroyed')
@@ -138,7 +140,7 @@ class TdClientActor extends EventEmitter {
 
     }
 
-    _pollupdates(timeout = 5000, is_recursive = false) {
+    _pollupdates(timeout = 5, is_recursive = false) {
         if (is_recursive && this._closed) {
             console.log('Client closed. Stopping recursive update.')
         }
@@ -148,15 +150,18 @@ class TdClientActor extends EventEmitter {
                 console.error(err)
                 return setTimeout(this._pollupdates.bind(this), 50, timeout, true)
             }
+            if (res === '') {
+                return setImmediate(this._pollupdates.bind(this), timeout, true)
+            }
             // console.log(update)
             try {
                 const update = JSON.parse(res)
                 const extra = update['@extra'] || ''
-                delete update['@extra']
-
+                
                 if (update['@type'] && update['@type'] !== 'error') {
                     this.emit('__' + update['@type'], update)
                 }
+                delete update['@extra']
                 if (extra) {
                     this.emit(`_update:${extra}`, update)
                 }
@@ -285,26 +290,21 @@ class TdClientActor extends EventEmitter {
     _readCache(name, options) {
         if (name === 'getChat') {
             const key = `chat:${options.chat_id}`
-            if (!this._cache.has(key)) return false
             return this._cache.get(key)
         } else if (name === 'getUser') {
             const key = `user:${options.user_id}`
-            if (!this._cache.has(key)) return false
             return this._cache.get(key)
         } else if (name === 'getBasicGroup') {
             const key = `basicgroup:${options.basic_group_id}`
-            if (!this._cache.has(key)) return false
             return this._cache.get(key)
         } else if (name === 'getSupergroup') {
             const key = `supergroup:${options.supergroup_id}`
-            if (!this._cache.has(key)) return false
             return this._cache.get(key)
         } else if (name === 'getSecretChat') {
             const key = `secretchat:${options.secret_chat_id}`
-            if (!this._cache.has(key)) return false
             return this._cache.get(key)
         } else {
-            return false
+            return undefined
         }
     }
 
