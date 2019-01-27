@@ -216,7 +216,7 @@ class BotTypeConversion {
                     if (!isNaN(additional_full.migrate_from_chat_id))
                         bot_chat.migrate_from_chat_id = -additional_full.upgraded_from_basic_group_id
                 } catch (e) {
-                    console.error(e)
+                    if (e.message !== 'CHANNEL_PRIVATE') console.error(e)
                 }
             }
         } else if (chat.type['@type'] == 'chatTypeBasicGroup') {
@@ -228,14 +228,19 @@ class BotTypeConversion {
             bot_chat.all_members_are_administrators = additional.everyone_is_administrator
             bot_chat.is_active = additional.is_active
             bot_chat.member_count = additional.member_count
-            bot_chat.upgraded_to_supergroup_id = additional.upgraded_to_supergroup_id
+            // bot_chat.upgraded_to_supergroup_id = additional.upgraded_to_supergroup_id 
+            bot_chat.upgraded_to_supergroup_id = -Math.pow(10, 12) - additional.upgraded_to_supergroup_id
             if (out_full) {
-                let additional_full = await this.client.run('getBasicGroupFullInfo', {
-                    basic_group_id: chat.type.basic_group_id
-                })
-                bot_chat.creator = additional_full.creator_user_id
-                bot_chat.members = additional_full.members
+                try {
+                    let additional_full = await this.client.run('getBasicGroupFullInfo', {
+                        basic_group_id: chat.type.basic_group_id
+                    })
+                    bot_chat.creator = additional_full.creator_user_id
+                    bot_chat.members = additional_full.members
                 // members here? really?
+                } catch (e) {
+                    console.error(e)
+                }
             }
         } else if (chat.type['@type'] == 'chatTypePrivate') {
             let additional = await this.client.run('getUser', {

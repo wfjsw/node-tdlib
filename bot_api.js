@@ -691,9 +691,9 @@ class Bot extends TdClientActor {
         return this._getUser(user_id)
     }
 
-    async getChat(chat_id) {
+    async getChat(chat_id, full = true) {
         if (!this.ready) throw new Error('Not ready.')
-        return this._getChat(chat_id, true)
+        return this._getChat(chat_id, full)
     }
 
     async getChatAdministrators(chat_id) {
