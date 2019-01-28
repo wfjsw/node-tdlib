@@ -171,10 +171,10 @@ class TdClientActor extends EventEmitter {
             lib.td_client_receive_async(this._instance_id, timeout, (err, res) => {
                 if (err) {
                     console.error(err)
-                    return setTimeout(this._pollupdates.bind(this), 50, timeout, true)
+                    return setTimeout(this._pollUpdates.bind(this), 50, timeout, true)
                 }
                 if (res === '') {
-                    return setImmediate(this._pollupdates.bind(this), timeout, true)
+                    return setImmediate(this._pollUpdates.bind(this), timeout, true)
                 }
                 // console.log(update)
                 try {
