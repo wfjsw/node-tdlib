@@ -90,7 +90,7 @@ class Bot extends TdClientActor {
                     }
                 })
             }
-        }, 10000)
+        }, 30000)
         this.once('ready', () => this.ready = true)
         this.once('ready', () => {
             this.run('setOption', {

@@ -42,6 +42,17 @@ class TdClientActor extends EventEmitter {
             tdlib_param.use_chat_info_database = false
         }
         this._tdlib_param = tdlib_param
+        if (options.polling_mode) {
+            if (['sync', 'async', 'fdpipe'].indexOf(options.polling_mode) > -1) {
+                if (options.polling_mode === 'fdpipe') {
+                    if (!lib.create_pipe_fd) options.polling_mode = 'sync'
+                }
+            } else {
+                options.polling_mode = 'sync'
+            }
+        } else {
+            options.polling_mode = 'sync'
+        }
         this._encryption_key = 'database_encryption_key' in options ? options.database_encryption_key : 'password'
         this.on('__updateAuthorizationState', async (update) => {
             switch (update.authorization_state['@type']) {
@@ -95,7 +106,16 @@ class TdClientActor extends EventEmitter {
             console.log('Last Update Time:', new Date(this._lastUpdateTime).toString())
             console.log('Last Update:', require('util').inspect(this._lastUpdate))
         })
-        setImmediate(this._pollupdates.bind(this), options.poll_timeout, false)
+
+        if (options.polling_mode === 'fdpipe') {
+            const [readfd, writefd] = lib.create_pipe_fd()
+            this._fd = [readfd, writefd]
+            this._readstream = fs.createReadStream(null, { fd: readfd, encoding: 'utf8' })
+            this._readstream.on('data', this._processUpdate.bind(this))
+            lib.register_receiver_fd(this._instance_id, writefd)
+        } else {
+            setImmediate(this._pollUpdates.bind(this), options.poll_timeout, false)
+        }
     }
 
     run(method, params = {}) {
@@ -134,18 +154,20 @@ class TdClientActor extends EventEmitter {
         return new Promise((rs, rj) => {
             if (this._closed) rj(new Error('Already closed.'))
             this._closed = true
-            this.once('closed', rs)
+            this.once('closed', () => {
+                rs()
+            })
             setImmediate(lib.td_client_destroy, this._instance_id)
         })
 
     }
 
-    _pollupdates(timeout = 5, is_recursive = false) {
+    _pollUpdates(timeout = 5, is_recursive = false) {
         if (is_recursive && this._closed) {
             console.log('Client closed. Stopping recursive update.')
         }
         if (this._closed) throw new Error('is closed')
-        if (this._options.async_polling) {
+        if (this._options.polling_mode === 'async') {
             lib.td_client_receive_async(this._instance_id, timeout, (err, res) => {
                 if (err) {
                     console.error(err)
@@ -156,48 +178,26 @@ class TdClientActor extends EventEmitter {
                 }
                 // console.log(update)
                 try {
-                    const update = JSON.parse(res)
-                    const extra = update['@extra'] || ''
-
-                    if (update['@type'] && update['@type'] !== 'error') {
-                        this.emit('__' + update['@type'], update)
-                    }
-                    delete update['@extra']
-                    if (extra) {
-                        this.emit(`_update:${extra}`, update)
-                    }
-                    this._lastUpdateTime = Date.now()
-                    this._lastUpdate = update
+                    this._processUpdate(res)
                 } catch (e) {
                     console.error(e)
                 }
-                setImmediate(this._pollupdates.bind(this), timeout, true)
+                setImmediate(this._pollUpdates.bind(this), timeout, true)
             })
-        } else {
+        } else if (this._options.polling_mode === 'sync') {
             timeout = 0 // force timeout to be 0 to avoid main thread block
             let updates
             try {
                 updates = lib.td_client_receive(this._instance_id, timeout)
             } catch (e) {
                 console.error(e)
-                return setTimeout(this._pollupdates.bind(this), 50, timeout, true)
+                return setTimeout(this._pollUpdates.bind(this), 50, timeout, true)
             }
             if (Array.isArray(updates) && updates.length > 0) {
                 for (let u of updates) {
                     // console.log(update)
                     try {
-                        const update = JSON.parse(u)
-                        const extra = update['@extra'] || ''
-
-                        if (update['@type'] && update['@type'] !== 'error') {
-                            this.emit('__' + update['@type'], update)
-                        }
-                        delete update['@extra']
-                        if (extra) {
-                            this.emit(`_update:${extra}`, update)
-                        }
-                        this._lastUpdateTime = Date.now()
-                        this._lastUpdate = update
+                        this._processUpdate(u)
                     } catch (e) {
                         console.error(e)
                     }
@@ -205,8 +205,24 @@ class TdClientActor extends EventEmitter {
                 this._lastUpdateTime = Date.now()
                 this._lastUpdate = updates[updates.length - 1]
             }
-            setTimeout(this._pollupdates.bind(this), 20, timeout, true)
+            setTimeout(this._pollUpdates.bind(this), 20, timeout, true)
         }
+    }
+
+    _processUpdate(update_string) {
+        const update = JSON.parse(update_string)
+        const extra = update['@extra'] || ''
+
+        if (update['@type'] && update['@type'] !== 'error') {
+            this.emit('__' + update['@type'], update)
+        }
+        delete update['@extra']
+        if (extra) {
+            this.emit(`_update:${extra}`, update)
+        }
+        this._lastUpdateTime = Date.now()
+        this._lastUpdate = update
+        return
     }
 
     async _generateFile(update) {
