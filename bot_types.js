@@ -229,7 +229,9 @@ class BotTypeConversion {
             bot_chat.is_active = additional.is_active
             bot_chat.member_count = additional.member_count
             // bot_chat.upgraded_to_supergroup_id = additional.upgraded_to_supergroup_id 
-            bot_chat.upgraded_to_supergroup_id = -Math.pow(10, 12) - additional.upgraded_to_supergroup_id
+            if (!isNaN(bot_chat.upgraded_to_supergroup_id)) {
+                bot_chat.upgraded_to_supergroup_id = -Math.pow(10, 12) - additional.upgraded_to_supergroup_id
+            }
             if (out_full) {
                 try {
                     let additional_full = await this.client.run('getBasicGroupFullInfo', {
@@ -466,6 +468,9 @@ class BotTypeConversion {
                 break
             case 'messageScreenshotTaken': 
                 bot_message.screenshot_taken = true
+                break
+            case 'messageUnsupported':
+                bot_message.unsupported = true
                 break
         }
         if (message.content.caption) {
