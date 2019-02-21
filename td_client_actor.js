@@ -106,7 +106,7 @@ class TdClientActor extends EventEmitter {
         if (is_cacheable) {
             const cache = this._readCache(method, params)
             if (cache !== undefined) {
-                return Promise.resolve(cache)
+                return Promise.resolve(Object.assign({}, cache)) // Copy the object to prevent modified object pollutes cache.
             }
         }
         return new Promise((rs, rj) => {
