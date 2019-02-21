@@ -54,6 +54,9 @@ class TdClientActor extends EventEmitter {
             options.polling_mode = 'sync'
         }
         this._encryption_key = 'database_encryption_key' in options ? options.database_encryption_key : 'password'
+
+        this._options.use_cache = 'use_cache' in options ? options.use_cache : true
+
         this.on('__updateAuthorizationState', async (update) => {
             switch (update.authorization_state['@type']) {
                 case 'authorizationStateWaitTdlibParameters':
@@ -80,27 +83,6 @@ class TdClientActor extends EventEmitter {
             return this._emitFileDownloadedEvent(update)
         })
 
-        this.on('__updateNewChat', update => this._writeCache('updateNewChat', update))
-        this.on('__updateUser', update => this._writeCache('updateUser', update))
-        this.on('__updateBasicGroup', update => this._writeCache('updateBasicGroup', update))
-        this.on('__updateSupergroup', update => this._writeCache('updateSupergroup', update))
-        this.on('__updateSecretChat', update => this._writeCache('updateSecretChat', update))
-        this.on('__updateChatTitle', update => this._writeCache('updateChatTitle', update))
-        this.on('__updateChatPhoto', update => this._writeCache('updateChatPhoto', update))
-        this.on('__updateChatLastMessage', update => this._writeCache('updateChatLastMessage', update))
-        this.on('__updateChatOrder', update => this._writeCache('updateChatOrder', update))
-        this.on('__updateChatReadInbox', update => this._writeCache('updateChatReadInbox', update))
-        this.on('__updateChatReadOutbox', update => this._writeCache('updateChatReadOutbox', update))
-        this.on('__updateChatReplyMarkup', update => this._writeCache('updateChatReplyMarkup', update))
-        this.on('__updateChatDraftMessage', update => this._writeCache('updateChatDraftMessage', update))
-        this.on('__updateChatNotificationSettings', update => this._writeCache('updateChatNotificationSettings', update))
-        this.on('__updateChatUnreadMentionCount', update => this._writeCache('updateChatUnreadMentionCount', update))
-        this.on('__updateChatIsPinned', update => this._writeCache('updateChatIsPinned', update))
-        this.on('__updateChatDefaultDisableNotification', update => this._writeCache('updateChatDefaultDisableNotification', update))
-        this.on('__updateChatIsSponsored', update => this._writeCache('updateChatIsSponsored', update))
-        this.on('__updateChatIsMarkedAsUnread', update => this._writeCache('updateChatIsMarkedAsUnread', update))
-        this.on('__updateUserStatus', update => this._writeCache('updateUserStatus', update))
-
         this._instance_id = lib.td_client_create()
         process.on('SIGUSR2', () => {
             console.log('Last Update Time:', new Date(this._lastUpdateTime).toString())
@@ -120,7 +102,7 @@ class TdClientActor extends EventEmitter {
 
     run(method, params = {}) {
         let stack_trace = new Error().stack.split('\n').slice(1).join('\n')
-        const is_cacheable = this._isCacheable(method)
+        const is_cacheable = this._isCacheableMethod(method)
         if (is_cacheable) {
             const cache = this._readCache(method, params)
             if (cache !== undefined) {
@@ -212,6 +194,10 @@ class TdClientActor extends EventEmitter {
     _processUpdate(update_string) {
         const update = JSON.parse(update_string)
         const extra = update['@extra'] || ''
+
+        if (this._isCacheableUpdate(update['@type'])) {
+            this._writeCache(update['@type'], update)
+        }
 
         if (update['@type'] && update['@type'] !== 'error') {
             this.emit('__' + update['@type'], update)
@@ -334,8 +320,33 @@ class TdClientActor extends EventEmitter {
 
     // Cache System Start
 
-    _isCacheable(key) {
-        return ['getChat', 'getUser', 'getBasicGroup', 'getSupergroup', 'getSecretChat'].indexOf(key) > -1
+    _isCacheableMethod(key) {
+        return this._options.use_cache && ['getChat', 'getUser', 'getBasicGroup', 'getSupergroup', 'getSecretChat'].indexOf(key) > -1
+    }
+
+    _isCacheableUpdate(key) {
+        return this._options.use_cache && [
+            'updateNewChat', 
+            'updateUser',
+            'updateBasicGroup',
+            'updateSupergroup',
+            'updateSecretChat',
+            'updateChatTitle',
+            'updateChatPhoto',
+            'updateChatLastMessage',
+            'updateChatOrder',
+            'updateChatReadInbox',
+            'updateChatReadOutbox',
+            'updateChatReplyMarkup',
+            'updateChatDraftMessage',
+            'updateChatNotificationSettings',
+            'updateChatUnreadMentionCount',
+            'updateChatIsPinned',
+            'updateChatDefaultDisableNotification',
+            'updateChatIsSponsored',
+            'updateChatIsMarkedAsUnread',
+            'updateUserStatus'
+        ].indexOf(key) > -1
     }
 
     _readCache(name, options) {
