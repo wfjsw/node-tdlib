@@ -361,15 +361,35 @@ class TdClientActor extends EventEmitter {
 
     _writeCache(name, data) {
         if (name === 'updateNewChat') {
-            this._cache.set(`chat:${data.chat.id}`, data.chat)
+            if (this._cache.has(`chat:${data.chat.id}`)) {
+                Object.assign(this._cache.get(`chat:${data.chat.id}`), data.chat)
+            } else {
+                this._cache.set(`chat:${data.chat.id}`, data.chat)
+            }
         } else if (name === 'updateUser') {
-            this._cache.set(`user:${data.user.id}`, data.user)
+            if (this._cache.has(`user:${data.user.id}`)) {
+                Object.assign(this._cache.get(`user:${data.user.id}`), data.user)
+            } else {
+                this._cache.set(`user:${data.user.id}`, data.user)
+            }
         } else if (name === 'updateBasicGroup') {
-            this._cache.set(`basicgroup:${data.basic_group.id}`, data.basic_group)
+            if (this._cache.has(`basicgroup:${data.basic_group.id}`)) {
+                Object.assign(this._cache.get(`basicgroup:${data.basic_group.id}`), data.basic_group)
+            } else {
+                this._cache.set(`basicgroup:${data.basic_group.id}`, data.basic_group)
+            }
         } else if (name === 'updateSupergroup') {
-            this._cache.set(`supergroup:${data.supergroup.id}`, data.supergroup)
+            if (this._cache.has(`supergroup:${data.supergroup.id}`)) {
+                Object.assign(this._cache.get(`supergroup:${data.supergroup.id}`), data.supergroup)
+            } else {
+                this._cache.set(`supergroup:${data.supergroup.id}`, data.supergroup)
+            }
         } else if (name === 'updateSecretChat') {
-            this._cache.set(`secretchat:${data.secret_chat.id}`, data.secret_chat)
+            if (this._cache.has(`secretchat:${data.secret_chat.id}`)) {
+                Object.assign(this._cache.get(`secretchat:${data.secret_chat.id}`), data.secret_chat)
+            } else {
+                this._cache.set(`secretchat:${data.secret_chat.id}`, data.secret_chat)
+            }
         } else if (name === 'updateChatTitle') {
             const cache = this._cache.get(`chat:${data.chat_id}`)
             cache.title = data.title
