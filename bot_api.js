@@ -1212,8 +1212,45 @@ class Bot extends TdClientActor {
                 remote_file_id: _id
             })
             _id = _file.id
+            if (_file.local.is_downloading_completed) {
+                return {
+                    file_id: _file.id,
+                    file_size: _file.size,
+                    file_path: _file.local.path
+                }
+            } else if (_file.local.is_downloading_active) {
+                return new Promise((rs) => {
+                    self.once(`_fileDownloaded:${_id}`, file => {
+                        return rs({
+                            file_id: file.id,
+                            file_size: file.size,
+                            file_path: file.local.path
+                        })
+                    })
+                })
+            }
         } else {
             _id = parseInt(_id)
+            let _file = await self.run('getFile', {
+                file_id: _id
+            })
+            if (_file.local.is_downloading_completed) {
+                return {
+                    file_id: _file.id,
+                    file_size: _file.size,
+                    file_path: _file.local.path
+                }
+            } else if (_file.local.is_downloading_active) {
+                return new Promise((rs) => {
+                    self.once(`_fileDownloaded:${_id}`, file => {
+                        return rs({
+                            file_id: file.id,
+                            file_size: file.size,
+                            file_path: file.local.path
+                        })
+                    })
+                })
+            }
         }
         if (priority < 1) priority = 1
         if (priority > 32) priority = 32
