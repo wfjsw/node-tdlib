@@ -1,3 +1,4 @@
+// @ts-nocheck
 const fs = require('fs')
 const cp = require('child_process')
 const { tdlib } = require('./package.json')

@@ -8,8 +8,44 @@ const crypto = require('crypto')
 const { TdClientActor } = require('./td_client_actor')
 const _util = require('./util')
 
+/** 
+ * @typedef BotOptions
+ * @property {boolean} [encrypt_callback_query]
+ * @property {boolean} [debug_encrypt_callback_query]
+ * @property {number} [username_cache_period]
+ * @property {string} [database_directory] The path to the directory for the persistent database; if empty, the current working directory will be used.
+ * @property {string} [files_directory] The path to the directory for storing files; if empty, database_directory will be used.
+ * @property {boolean} [use_file_database] If set to true, information about downloaded and uploaded files will be saved between application restarts.
+ * @property {boolean} [use_chat_info_database] If set to true, the library will maintain a cache of users, basic groups, supergroups, channels and secret chats. Implies use_file_database.
+ * @property {boolean} [use_message_database] If set to true, the library will maintain a cache of chats and messages. Implies use_chat_info_database.
+ * @property {boolean} [use_secret_chats] If set to true, support for secret chats will be enabled.
+ * @property {string} [system_language_code] IETF language tag of the user's operating system language; must be non-empty.
+ * @property {string} [device_model] Model of the device the application is being run on; must be non-empty.
+ * @property {string} [system_version] Version of the operating system the application is being run on; must be non-empty.
+ * @property {string} [application_version] Application version; must be non-empty.
+ * @property {boolean} [enable_storage_optimizer] If set to true, old files will automatically be deleted.
+ * @property {boolean} [ignore_file_names] If set to true, original file names will be ignored. Otherwise, downloaded files will be saved under names as close as possible to the original name.
+ * @property {string} [database_encryption_key] The database encryption key. Usually the encryption key is never changed and is stored in some OS keychain.
+ * @property {number} [poll_timeout]
+ * @property {"sync"|"async"|"fdpipe"} [polling_mode]
+ * @property {boolean} [use_cache]
+
+ */
+
+/**
+ * Bot API Interface
+ */
 class Bot extends TdClientActor {
-    constructor(api_id, api_hash, bot_token, use_test_dc = false, identifier = null, options = {}) {
+    /**
+     * 
+     * @param {number} api_id 
+     * @param {string} api_hash 
+     * @param {string} bot_token 
+     * @param {boolean} [use_test_dc] 
+     * @param {string} [identifier] 
+     * @param {BotOptions} [options]
+     */
+    constructor(api_id, api_hash, bot_token, use_test_dc = false, identifier = null, options) {
         if (!api_id || !api_hash) throw new Error('missing api_id, api_hash')
         if (identifier === null) identifier = `bot${bot_token.split(':')[0]}`
         const ignore_file_names = 'ignore_file_names' in options ? options.ignore_file_names : true
@@ -1287,6 +1323,12 @@ class Bot extends TdClientActor {
 
     // Helpers
 
+    /**
+     * Get user by Id
+     * @protected
+     * @param {number} user_id 
+     * @param {boolean} out_full 
+     */
     async _getUser(user_id, out_full = true) {
         let _id = await this._checkChatId(user_id)
         if (_id <= 0) throw new Error('Not a user.')
@@ -1297,6 +1339,12 @@ class Bot extends TdClientActor {
         return this.conversion.buildUser(user, out_full)
     }
 
+    /**
+    * Get chat by Id
+    * @protected
+    * @param {number} chat_id
+    * @param {boolean} out_full
+    */
     async _getChat(chat_id, out_full = true) {
         let _id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(_id)
@@ -1306,20 +1354,45 @@ class Bot extends TdClientActor {
         return this.conversion.buildChat(chat, out_full)
     }
 
-    // Note: it use API id. Don't forget to convert
+    /**
+     * Get message by Id (in API form).
+     * @protected
+     * @param {number} chat_id 
+     * @param {number} message_id
+     * @param {number} [follow_replies_level]
+     */
     async _getMessageByAPIId(chat_id, message_id, follow_replies_level) {
         let _mid = _util.get_tdlib_message_id(message_id)
         return this._getMessageByTdlibId(chat_id, _mid, follow_replies_level)
     }
 
+    /**
+    * Load message into memory by Id (in API form).
+    * @protected
+    * @param {number} chat_id
+    * @param {number} message_id
+    */
     async _loadMessageByAPIId(chat_id, message_id) {
         return this._loadMessage(chat_id, _util.get_tdlib_message_id(message_id))
     }
 
+    /**
+    * Batch load message into memory by Id (in API form).
+    * @protected
+    * @param {number} chat_id
+    * @param {number[]} message_ids
+    */
     async _loadMessageBatchByAPIId(chat_id, message_ids) {
         return this._loadMessage(chat_id, message_ids.map(m => _util.get_tdlib_message_id(m)))
     }
 
+    /**
+    * Get message by Id (in TDLib form).
+    * @protected
+    * @param {number} chat_id
+    * @param {number} message_id
+    * @param {number} [follow_replies_level]
+    */
     async _getMessageByTdlibId(chat_id, message_id, follow_replies_level) {
         let _msg = await this.run('getMessage', {
             chat_id,
@@ -1328,6 +1401,9 @@ class Bot extends TdClientActor {
         return this._getMessage(_msg, follow_replies_level)
     }
 
+    /**
+     * @protected
+     */
     async _getChatMember(chat_id, user_id) {
         chat_id = await this._checkChatId(chat_id)
         user_id = await this._checkChatId(user_id)
@@ -1339,6 +1415,9 @@ class Bot extends TdClientActor {
         return this.conversion.buildChatMember(cm)
     }
 
+    /**
+    * @protected
+    */
     async _checkIsMember(chat_id, user_id) {
         chat_id = await this._checkChatId(chat_id)
         user_id = await this._checkChatId(user_id)
@@ -1360,10 +1439,22 @@ class Bot extends TdClientActor {
         return false 
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} message 
+     * @param {*} [follow_replies_level]
+     */
     async _getMessage(message, follow_replies_level) {
         return this.conversion.buildMessage(message, follow_replies_level)
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} chat_id 
+     * @param {*} message_id 
+     */
     async _loadMessage(chat_id, message_id) {
         return  this.run('getMessage', {
             chat_id,
@@ -1371,6 +1462,12 @@ class Bot extends TdClientActor {
         })
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} chat_id 
+     * @param {*} message_ids 
+     */
     async _loadMessageBatch(chat_id, message_ids) {
         const results = await this.run('getMessages', {
             chat_id,
@@ -1379,6 +1476,12 @@ class Bot extends TdClientActor {
         return results.messages
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} text 
+     * @param {*} parse_mode 
+     */
     async _generateFormattedText(text, parse_mode) {
         text = text.toString()
         if (parse_mode) {
@@ -1410,6 +1513,11 @@ class Bot extends TdClientActor {
         }
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} chat_id 
+     */
     async _checkChatId(chat_id) { // deopt
         if (isNaN(chat_id)) {
             if (typeof chat_id !== 'string') {
@@ -1442,6 +1550,12 @@ class Bot extends TdClientActor {
         }
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} file 
+     * @param {*} file_name 
+     */
     async _prepareUploadFile(file, file_name = null) {
         // File can be instance of Stream, Buffer or String(remote.id) or String(local_path)
         if (file instanceof stream.Stream) {
@@ -1514,6 +1628,13 @@ class Bot extends TdClientActor {
         }
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} chat_id 
+     * @param {*} content 
+     * @param {*} options 
+     */
     async _sendMessage(chat_id, content, options = {}) {
         let self = this
         chat_id = await this._checkChatId(chat_id)
@@ -1542,6 +1663,13 @@ class Bot extends TdClientActor {
         return this._waitMessageTillSent(chat_id, old_msg.id)
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} chat_id 
+     * @param {*} contents 
+     * @param {*} options 
+     */
     async _sendMessageAlbum(chat_id, contents, options = {}) {
         let self = this
         chat_id = await this._checkChatId(chat_id)
@@ -1566,6 +1694,11 @@ class Bot extends TdClientActor {
         return Promise.all(old_msg.messages.map(m => this._waitMessageTillSent(chat_id, m.id)))
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} message 
+     */
     async _processIncomingUpdate(message) {
         if (message.is_outgoing) return
         let msg = await this._getMessage(message)
@@ -1576,6 +1709,11 @@ class Bot extends TdClientActor {
         }
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} update 
+     */
     async _processIncomingEdit(update) {
         let _msg = await this.run('getMessage', {
             chat_id: update.chat_id,
@@ -1590,6 +1728,11 @@ class Bot extends TdClientActor {
         }
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} update 
+     */
     async _processIncomingCallbackQuery(update) {
         let _from = await this._getUser(update.sender_user_id, false)
         let evt = {
@@ -1613,6 +1756,7 @@ class Bot extends TdClientActor {
                 let payload = Buffer.from(update.payload.data, 'base64')
                 try {
                     let iv = payload.slice(0, 16)
+                    // @ts-ignore
                     let decryptor = crypto.createDecipheriv('aes-256-cfb', this._encrypt_callback_query, iv)
                     evt.data = Buffer.concat([decryptor.update(payload.slice(16)), decryptor.final()]).toString('utf8')
                 } catch (e) { 
@@ -1634,6 +1778,11 @@ class Bot extends TdClientActor {
         return this.emit('callback_query', evt)
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} update 
+     */
     async _processIncomingInlineQuery(update) {
         let _from = await this._getUser(update.sender_user_id, false)
         let evt = {
@@ -1648,6 +1797,11 @@ class Bot extends TdClientActor {
         return this.emit('inline_query', evt)
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} update 
+     */
     async _processIncomingChosenInlineResult(update) {
         let _from = await this._getUser(update.sender_user_id, false)
         let evt = {
@@ -1662,6 +1816,11 @@ class Bot extends TdClientActor {
         return this.emit('chosen_inline_result', evt)
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} chat_id 
+     */
     async _initChatIfNeeded(chat_id) {
         // See https://github.com/tdlib/td/issues/263#issuecomment-395968079
         if (this._inited_chat.has(chat_id)) return
@@ -1700,6 +1859,12 @@ class Bot extends TdClientActor {
         return
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} chat_id 
+     * @param {*} message_id 
+     */
     _waitMessageTillSent(chat_id, message_id) {
         const self = this
         return new Promise(async (rs, rj) => {
@@ -1713,6 +1878,11 @@ class Bot extends TdClientActor {
         })
     }
 
+    /**
+     * 
+     * @protected
+     * @param {*} replymarkup 
+     */
     _parseReplyMarkup(replymarkup) {
         if ('inline_keyboard' in replymarkup) {
             let keyboard = {
@@ -1739,6 +1909,7 @@ class Bot extends TdClientActor {
                             let data_buffer = Buffer.from(c.callback_data, 'utf8')
                             if (data_buffer.length > 48) throw new Error('Payload too long. 48 bytes max.')
                             const iv = crypto.randomBytes(16)
+                            // @ts-ignore
                             let encryptor = crypto.createCipheriv('aes-256-cfb', this._encrypt_callback_query, iv)
                             col.type.data = Buffer.concat([iv, encryptor.update(Buffer.from(c.callback_data, 'utf8')), encryptor.final()]).toString('base64')
                         } else {

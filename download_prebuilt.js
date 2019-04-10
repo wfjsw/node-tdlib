@@ -2,6 +2,7 @@ const rp = require('request-promise-native')
 const zlib = require('zlib')
 const fs = require('fs')
 
+// @ts-ignore
 const { tdlib } = require('./package.json')
 
 const arch_version = `${process.platform}-${process.arch}`

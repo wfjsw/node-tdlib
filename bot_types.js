@@ -186,7 +186,7 @@ class BotTypeConversion {
                             let pin_msg_orig = await this.client.run('getChatPinnedMessage', {
                                 chat_id: chat.id
                             })
-                            bot_chat.pinned_message = await this.buildMessage(pin_msg_orig, true)
+                            bot_chat.pinned_message = await this.buildMessage(pin_msg_orig, 1)
                         }
                     } catch (e) {
                         // failed to get the pinned msg

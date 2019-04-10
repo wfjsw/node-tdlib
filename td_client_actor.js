@@ -1,4 +1,4 @@
-const lib = require('./tdlib.node')
+const lib = require('./tdlib')
 const EventEmitter = require('events')
 const path = require('path')
 const os = require('os')
@@ -6,10 +6,42 @@ const rq = require('request')
 const fs = require('fs')
 const fsp = fs.promises
 const util = require('./util')
-const {inspect} = require('util')
+const { inspect } = require('util')
+
+/**
+ * @enum Polling mode
+ */
+
+/**
+ * @typedef TdClientActorOptions
+ * @property {number} api_id Application identifier for Telegram API access, which can be obtained at https://my.telegram.org.
+ * @property {string} api_hash Application identifier hash for Telegram API access, which can be obtained at https://my.telegram.org.
+ * @property {string} [identifier] Identifier between different TDLib instances.
+ * @property {boolean} [use_test_dc] If set to true, the Telegram test environment will be used instead of the production environment.
+ * @property {string} [database_directory] The path to the directory for the persistent database; if empty, the current working directory will be used.
+ * @property {string} [files_directory] The path to the directory for storing files; if empty, database_directory will be used.
+ * @property {boolean} [use_file_database] If set to true, information about downloaded and uploaded files will be saved between application restarts.
+ * @property {boolean} [use_chat_info_database] If set to true, the library will maintain a cache of users, basic groups, supergroups, channels and secret chats. Implies use_file_database.
+ * @property {boolean} [use_message_database] If set to true, the library will maintain a cache of chats and messages. Implies use_chat_info_database.
+ * @property {boolean} [use_secret_chats] If set to true, support for secret chats will be enabled.
+ * @property {string} [system_language_code] IETF language tag of the user's operating system language; must be non-empty.
+ * @property {string} [device_model] Model of the device the application is being run on; must be non-empty.
+ * @property {string} [system_version] Version of the operating system the application is being run on; must be non-empty.
+ * @property {string} [application_version] Application version; must be non-empty.
+ * @property {boolean} [enable_storage_optimizer] If set to true, old files will automatically be deleted.
+ * @property {boolean} [ignore_file_names] If set to true, original file names will be ignored. Otherwise, downloaded files will be saved under names as close as possible to the original name.
+ * @property {string} [database_encryption_key] The database encryption key. Usually the encryption key is never changed and is stored in some OS keychain.
+ * @property {number} [poll_timeout]
+ * @property {"sync"|"async"|"fdpipe"} [polling_mode]
+ * @property {boolean} [use_cache]
+ */
 
 class TdClientActor extends EventEmitter {
-    constructor(options = {}) {
+    /**
+     * @param {TdClientActorOptions} options 
+     */
+    constructor(options) {
+        // @ts-ignore
         super({
             wildcard: true
         })
@@ -25,6 +57,7 @@ class TdClientActor extends EventEmitter {
         if (options.use_test_dc) tdlib_param.use_test_dc = true
         let dirname = require.main ? path.dirname(require.main.filename) : __dirname
         tdlib_param.database_directory = 'database_directory' in options ? path.join(options.database_directory, options.identifier) : path.join(dirname, 'td_data', options.identifier)
+        tdlib_param.files_directory = 'files_directory' in options ? options.files_directory : ''
         tdlib_param.use_file_database = 'use_file_database' in options ? options.use_file_database : true
         tdlib_param.use_chat_info_database = 'use_chat_info_database' in options ? options.use_chat_info_database : true
         tdlib_param.use_message_database = 'use_message_database' in options ? options.use_message_database : true
@@ -68,8 +101,16 @@ class TdClientActor extends EventEmitter {
                         encryption_key: this._encryption_key
                     })
                 case 'authorizationStateReady':
+                    /**
+                     * Client is ready.
+                     * @event TdClientActor#ready
+                     */
                     return this.emit('ready')
                 case 'authorizationStateClosed':
+                    /**
+                     * Client is destroyed.
+                    * @event TdClientActor#closed
+                    */
                     return this.emit('closed')
             }
         })
@@ -100,6 +141,11 @@ class TdClientActor extends EventEmitter {
         }
     }
 
+    /**
+     * Run a TDLib method.
+     * @param {string} method Method name. See https://core.telegram.org/tdlib/docs/annotated.html
+     * @param {object} params Parameters.
+     */
     run(method, params = {}) {
         let stack_trace = new Error().stack.split('\n').slice(1).join('\n')
         const is_cacheable = this._isCacheableMethod(method)
@@ -132,6 +178,10 @@ class TdClientActor extends EventEmitter {
         })
     }
 
+    /**
+     * Destory TDLib Client.
+     * @fires TdClientActor#destroy
+     */
     destroy() {
         return new Promise((rs, rj) => {
             if (this._closed) rj(new Error('Already closed.'))
@@ -141,9 +191,14 @@ class TdClientActor extends EventEmitter {
             })
             setImmediate(lib.td_client_destroy, this._instance_id)
         })
-
     }
 
+    /**
+     * Poll for updates
+     * @private
+     * @param {number} timeout 
+     * @param {boolean} is_recursive 
+     */
     _pollUpdates(timeout = 5, is_recursive = false) {
         if (is_recursive && this._closed) {
             console.log('Client closed. Stopping recursive update.')
