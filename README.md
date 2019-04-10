@@ -10,7 +10,7 @@ npm i wfjsw/node-tdlib --save
 
 NPM will automatically download the appropriate `tdlib.node` binary.
 
-Please see below to compile on your own if there doesn't exist a suitable binary.
+Will compile automatically (using a lot of time) if there doesn't exist a suitable binary. If you do not need it, pass `--ignore-scripts` to `npm`.
 
 List of prebuilt binary is available [here](https://github.com/wfjsw/node-tdlib/releases).
 
