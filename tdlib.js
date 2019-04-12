@@ -27,8 +27,9 @@ class TDLibNative {
      * Receives incoming updates and request responses from TDLib.
      * @param {number} client_id Client identifier
      * @param {number} timeout Maximum number of seconds allowed for this function to wait for new data.
+     * @returns {*}
      */
-    static td_client_receive(client_id, timeout) { tdlib_native.td_client_receive(client_id, timeout) }
+    static td_client_receive(client_id, timeout) { return tdlib_native.td_client_receive(client_id, timeout) }
 
     /**
      * @callback TdClientReceiveAsyncCallback
