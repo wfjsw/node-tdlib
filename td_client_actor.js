@@ -57,7 +57,7 @@ class TdClientActor extends EventEmitter {
         if (options.use_test_dc) tdlib_param.use_test_dc = true
         let dirname = require.main ? path.dirname(require.main.filename) : __dirname
         tdlib_param.database_directory = 'database_directory' in options ? path.join(options.database_directory, options.identifier) : path.join(dirname, 'td_data', options.identifier)
-        tdlib_param.files_directory = 'files_directory' in options ? options.files_directory : ''
+        tdlib_param.files_directory = 'files_directory' in options ? options.files_directory : tdlib_param.database_directory
         tdlib_param.use_file_database = 'use_file_database' in options ? options.use_file_database : true
         tdlib_param.use_chat_info_database = 'use_chat_info_database' in options ? options.use_chat_info_database : true
         tdlib_param.use_message_database = 'use_message_database' in options ? options.use_message_database : true
