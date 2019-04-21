@@ -40,11 +40,20 @@ const chataction_mirror_table = new Map([
 ])
 
 class BotTypeConversion {
+    /**
+     * @param {TdClientActor.TdClientActor} TdClient 
+     */
     constructor(TdClient) {
         if (!TdClient) throw new Error('You have to pass a functional TdClient for this to work.')
         this.client = TdClient
     }
+    
+    /**
+     * @param {TdTypes.user} user
+     * @returns {Promise<BotAPITypes.User & BotAPITypes$Extended.User>}
+     */
     async buildUser(user, out_full = false) {
+        /** @type {BotAPITypes.User & BotAPITypes$Extended.User} */
         let bot_user = {
             id: user.id,
             first_name: user.first_name,
@@ -54,7 +63,9 @@ class BotTypeConversion {
             restriction_reason: user.restriction_reason,
             is_verified: user.is_verified,
             phone_number: user.phone_number,
-            is_bot: false
+            is_bot: false,
+            last_seen: null,
+            type: null
         }
         if (user.profile_photo) {
             bot_user.photo = {
@@ -213,7 +224,7 @@ class BotTypeConversion {
                     bot_chat.can_set_sticker_set = additional_full.can_set_sticker_set
                     bot_chat.is_all_history_available = additional_full.is_all_history_available
                     bot_chat.invite_link = additional_full.invite_link
-                    if (!isNaN(additional_full.migrate_from_chat_id))
+                    if (!isNaN(additional_full.upgraded_from_basic_group_id))
                         bot_chat.migrate_from_chat_id = -additional_full.upgraded_from_basic_group_id
                 } catch (e) {
                     if (e.message !== 'CHANNEL_PRIVATE') console.error(e)

@@ -75,7 +75,7 @@ class Bot extends TdClientActor {
         this._inited_chat = new Set()
 
         if (bot_token) {
-            this.on('__updateAuthorizationState', async (update) => {
+            this.on('__updateAuthorizationState', async (/** @type {TdTypes.updateAuthorizationState} */ update) => {
                 switch (update.authorization_state['@type']) {
                 case 'authorizationStateWaitPhoneNumber':
                     return this.run('checkAuthenticationBotToken', {
@@ -84,13 +84,13 @@ class Bot extends TdClientActor {
                 }
             })
         }
-        this.on('__updateMessageSendSucceeded', (update) => {
+        this.on('__updateMessageSendSucceeded', (/** @type {TdTypes.updateMessageSendSucceeded} */ update) => {
             this.emit(`_sendMsg:${update.message.chat_id}:${update.old_message_id}`, {
                 ok: true,
                 message: update.message
             })
         })
-        this.on('__updateMessageSendFailed', (update) => {
+        this.on('__updateMessageSendFailed', (/** @type {TdTypes.updateMessageSendFailed} */ update) => {
             this.emit(`_sendMsg:${update.message.chat_id}:${update.old_message_id}`, {
                 ok: false,
                 code: update.error_code,
@@ -98,19 +98,19 @@ class Bot extends TdClientActor {
                 message: update.message
             })
         })
-        this.on('__updateNewMessage', (update) => {
+        this.on('__updateNewMessage', (/** @type {TdTypes.updateNewMessage} */ update) => {
             this._processIncomingUpdate.call(self, update.message)
         })
-        this.on('__updateMessageEdited', (update) => {
+        this.on('__updateMessageEdited', (/** @type {TdTypes.updateMessageEdited} */ update) => {
             this._processIncomingEdit.call(self, update)
         })
-        this.on('__updateNewInlineQuery', (update) => {
+        this.on('__updateNewInlineQuery', (/** @type {TdTypes.updateNewInlineQuery} */ update) => {
             this._processIncomingInlineQuery.call(self, update)
         })
-        this.on('__updateNewCallbackQuery', (update) => {
+        this.on('__updateNewCallbackQuery', (/** @type {TdTypes.updateNewCallbackQuery} */ update) => {
             this._processIncomingCallbackQuery.call(self, update)
         })
-        this.on('__updateNewInlineCallbackQuery', (update) => {
+        this.on('__updateNewInlineCallbackQuery', (/** @type {TdTypes.updateNewInlineCallbackQuery} */ update) => {
             this._processIncomingCallbackQuery.call(self, update)
         })
         this.on('__updateNewChosenInlineResult', (update) => {
@@ -147,6 +147,10 @@ class Bot extends TdClientActor {
         this.conversion = new (require('./bot_types'))(this)
     }
 
+    /**
+     *
+     * @returns {Promise<BotAPITypes.User & BotAPITypes$Extended.User>}
+     */
     async getMe() {
         if (!this.ready) throw new Error('Not ready.')
         let me = await this.run('getMe', {})
@@ -1695,9 +1699,8 @@ class Bot extends TdClientActor {
     }
 
     /**
-     * 
-     * @protected
-     * @param {*} message 
+     * @private
+     * @param {TdTypes.updateNewMessage} message 
      */
     async _processIncomingUpdate(message) {
         if (message.is_outgoing) return

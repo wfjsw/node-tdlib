@@ -1,9 +1,10 @@
-const td = require('./tdlib')
+
+const { TDLib: td } = require('./tdlib.js')
 
 /**
  * TDLib Logger Wrapper
  */
-class Logger {
+exports.Logger = class Logger {
     /**
     * Sets the path to the file to where the internal TDLib log will be written.
     * By default TDLib writes logs to stderr or an OS specific log.
@@ -28,4 +29,3 @@ class Logger {
     static setLogVerbosityLevel(new_verbosity_level) { return td.td_set_log_verbosity_level(new_verbosity_level) }
 }
 
-module.exports = Logger

@@ -1,4 +1,4 @@
-const lib = require('./tdlib')
+const {TDLib: lib} = require('./tdlib')
 const EventEmitter = require('events')
 const path = require('path')
 const os = require('os')

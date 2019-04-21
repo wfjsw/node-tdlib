@@ -6,7 +6,7 @@ const tdlib_native = require('./tdlib.node')
 /**
  * TDLib Native Library Wrapper
  */
-class TDLibNative {
+exports.TDLib = class TDLibNative {
     /** 
      * Create a TDLib Client 
      * @returns {number} Return a sequence number for client identifier
@@ -27,14 +27,14 @@ class TDLibNative {
      * Receives incoming updates and request responses from TDLib.
      * @param {number} client_id Client identifier
      * @param {number} timeout Maximum number of seconds allowed for this function to wait for new data.
-     * @returns {*}
+     * @returns {string[]}
      */
     static td_client_receive(client_id, timeout) { return tdlib_native.td_client_receive(client_id, timeout) }
 
     /**
      * @callback TdClientReceiveAsyncCallback
      * @param {Error} err Error
-     * @param {object} res Result    
+     * @param {string} res Result    
      */
 
     /**
@@ -77,5 +77,3 @@ class TDLibNative {
     static register_receiver_fd(client_id, write_fd) { tdlib_native.register_receiver_fd(client_id, write_fd) }
 
 }
-
-module.exports = TDLibNative
