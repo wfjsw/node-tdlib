@@ -45,7 +45,7 @@ class Bot extends TdClientActor {
      * @param {string} [identifier] 
      * @param {BotOptions} [options]
      */
-    constructor(api_id, api_hash, bot_token, use_test_dc = false, identifier = null, options) {
+    constructor(api_id, api_hash, bot_token, use_test_dc = false, identifier = null, options = {}) {
         if (!api_id || !api_hash) throw new Error('missing api_id, api_hash')
         if (identifier === null) identifier = `bot${bot_token.split(':')[0]}`
         const ignore_file_names = 'ignore_file_names' in options ? options.ignore_file_names : true
