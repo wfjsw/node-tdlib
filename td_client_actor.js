@@ -178,6 +178,30 @@ class TdClientActor extends EventEmitter {
         })
     }
 
+    execute(method, params) {
+        if (this._closed) throw new Error('already destroyed')
+        let req = params
+        req['@type'] = method
+        this.once(`_update:${req['@extra']}`, (res) => {
+
+        })
+        let result = lib.td_client_execute(this._instance_id, JSON.stringify(req))
+        let stack_trace = new Error().stack.split('\n').slice(1).join('\n')
+        result = JSON.parse(result)
+        if (result['@type'] == 'error') {
+            Object.defineProperty(result, 'stack', {
+                value: `Error ${result.code}: ${result.message}\nCaused by: ${method}\nParams: ${inspect(params)}\n${stack_trace}`,
+                enumerable: false,
+                configurable: false,
+                writable: false
+            })
+            result.method = method
+            result.params = params
+            throw result
+        }
+        return result
+    }
+
     /**
      * Destory TDLib Client.
      * @fires TdClientActor#destroy
@@ -272,6 +296,7 @@ class TdClientActor extends EventEmitter {
             return rq
                 .get(update.original_path)
                 .on('error', (err) => {
+                    // @ts-ignore
                     if (err.is_incoming_error) {
                         return self.run('finishFileGeneration', {
                             generation_id: update.generation_id,
@@ -280,7 +305,7 @@ class TdClientActor extends EventEmitter {
                                 message: err.message
                             }
                         })
-                    } else if (err.errno == 'ETIMEDOUT') {
+                    } else if (err.code == 'ETIMEDOUT') {
                         return self.run('finishFileGeneration', {
                             generation_id: update.generation_id,
                             error: {
@@ -301,6 +326,7 @@ class TdClientActor extends EventEmitter {
                 .on('response', (incoming) => {
                     if (incoming.statusCode != 200) {
                         return incoming.destroy({
+                            // @ts-ignore
                             code: incoming.statusCode,
                             message: incoming.statusMessage,
                             is_incoming_error: true

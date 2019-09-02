@@ -1,6 +1,6 @@
 {
   "name": "tdlib",
-  "version": "1.3.0-9",
+  "version": "1.4.0-1",
   "description": "TDLib Binding for Node.js",
   "main": "index.js",
   "scripts": {
@@ -21,8 +21,8 @@
     "node": ">=10.0.0"
   },
   "tdlib": {
-    "version": "1.3.0",
-    "commit": "fdpipe",
+    "version": "1.4.0",
+    "commit": "21dee3b",
     "variant": "napi",
     "debug": false
   },

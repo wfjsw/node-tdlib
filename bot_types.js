@@ -39,6 +39,38 @@ const chataction_mirror_table = new Map([
     ['play_game', 'chatActionStartPlayingGame']
 ])
 
+const passport_element_type_mirror_table = new Map([
+    ['passportElementTypeAddress', 'address'],
+    ['passportElementTypeBankStatement', 'bank_statement'],
+    ['passportElementTypeDriverLicense', 'driver_license'],
+    ['passportElementTypeEmailAddress', 'email'],
+    ['passportElementTypeIdentityCard', 'identity_card'],
+    ['passportElementTypeInternalPassport', 'internal_passport'],
+    ['passportElementTypePassport', 'passport'],
+    ['passportElementTypePassportRegistration', 'passport_registration'],
+    ['passportElementTypePersonalDetails', 'personal_details'],
+    ['passportElementTypePhoneNumber', 'phone_number'],
+    ['passportElementTypeRentalAgreement', 'rental_agreement'],
+    ['passportElementTypeTemporaryRegistration', 'temporary_registration'],
+    ['passportElementTypeUtilityBill', 'utility_bill']
+])
+
+const passport_element_type_mirror_table_reversed = new Map([
+    ['address', 'passportElementTypeAddress'],
+    ['bank_statement', 'passportElementTypeBankStatement'],
+    ['driver_license', 'passportElementTypeDriverLicense'],
+    ['email', 'passportElementTypeEmailAddress'],
+    ['identity_card', 'passportElementTypeIdentityCard'],
+    ['internal_passport', 'passportElementTypeInternalPassport'],
+    ['passport', 'passportElementTypePassport', ],
+    ['passport_registration', 'passportElementTypePassportRegistration'],
+    ['personal_details', 'passportElementTypePersonalDetails'],
+    ['phone_number', 'passportElementTypePhoneNumber'],
+    ['rental_agreement', 'passportElementTypeRentalAgreement'],
+    ['temporary_registration', 'passportElementTypeTemporaryRegistration'],
+    ['utility_bill', 'passportElementTypeUtilityBill']
+])
+
 class BotTypeConversion {
     /**
      * @param {TdClientActor.TdClientActor} TdClient 
@@ -62,6 +94,7 @@ class BotTypeConversion {
             language_code: user.language_code,
             restriction_reason: user.restriction_reason,
             is_verified: user.is_verified,
+            is_support: user.is_support,
             phone_number: user.phone_number,
             is_bot: false,
             last_seen: null,
@@ -193,12 +226,10 @@ class BotTypeConversion {
                     // So we will just try. If it failed, we ignore it.
                     // In the future, we will read the privacy settings from the bot's profile.
                     try { 
-                        if (additional_full.pinned_message_id) {
-                            let pin_msg_orig = await this.client.run('getChatPinnedMessage', {
-                                chat_id: chat.id
-                            })
-                            bot_chat.pinned_message = await this.buildMessage(pin_msg_orig, 1)
-                        }
+                        let pin_msg_orig = await this.client.run('getChatPinnedMessage', {
+                            chat_id: chat.id
+                        })
+                        bot_chat.pinned_message = await this.buildMessage(pin_msg_orig, 1)
                     } catch (e) {
                         // failed to get the pinned msg
                     } 
@@ -222,6 +253,7 @@ class BotTypeConversion {
                     bot_chat.can_get_members = additional_full.can_get_members
                     bot_chat.can_set_username = additional_full.can_set_username
                     bot_chat.can_set_sticker_set = additional_full.can_set_sticker_set
+                    bot_chat.can_view_statistics = additional_full.can_view_statistics
                     bot_chat.is_all_history_available = additional_full.is_all_history_available
                     bot_chat.invite_link = additional_full.invite_link
                     if (!isNaN(additional_full.upgraded_from_basic_group_id))
@@ -315,27 +347,33 @@ class BotTypeConversion {
             }
         }
         bot_message.author_signature = message.author_signature
-        if (message.forward_info)
-            switch (message.forward_info['@type']) {
-                case 'messageForwardedFromUser': {
+        if (message.forward_info) {
+            bot_message.forwarded = true
+            bot_message.forward_date = message.forward_info.date
+            switch (message.forward_info.origin['@type']) {
+                case 'messageForwardOriginUser': {
                     let fwd_user = await this.client.run('getUser', {
-                        user_id: message.forward_info.sender_user_id
+                        user_id: message.forward_info.origin.sender_user_id
                     })
                     bot_message.forward_from = await this.buildUser(fwd_user, false)
-                    bot_message.forward_date = message.forward_info.date
                     break
                 }
-                case 'messageForwardedPost': {
+                case 'messageForwardOriginHiddenUser': {
+                    bot_message.forward_sender_name = message.forward_info.sender_name
+                    break
+                }
+                case 'messageForwardOriginChannel': {
                     let fwd_chat = await this.client.run('getChat', {
-                        chat_id: message.forward_info.chat_id
+                        chat_id: message.forward_info.origin.chat_id
                     })
                     bot_message.forward_from_chat = await this.buildChat(fwd_chat, false)
-                    bot_message.forward_from_message_id = _util.get_api_message_id(message.forward_info.message_id)
-                    bot_message.forward_date = message.forward_info.date
-                    bot_message.forward_signature = message.forward_info.author_signature
+                    bot_message.forward_from_message_id = _util.get_api_message_id(message.forward_info.origin.message_id)
+                    bot_message.forward_signature = message.forward_info.origin.author_signature
                     break
                 }
-            }
+            } 
+        }
+
         switch (message.content['@type']) {
             case 'messageText':
                 bot_message.text = message.content.text.text
@@ -479,6 +517,12 @@ class BotTypeConversion {
                 break
             case 'messageScreenshotTaken': 
                 bot_message.screenshot_taken = true
+                break
+            case 'messagePassportDataReceived':
+                bot_message.passport_data = await this.buildPassportData(message.content)
+                break
+            case 'messagePoll': 
+                bot_message.poll = await this.buildPoll(message.content.poll)
                 break
             case 'messageUnsupported':
                 bot_message.unsupported = true
@@ -669,6 +713,47 @@ class BotTypeConversion {
         return _doc
     }
 
+    async buildEncryptedCredentials(encrypted_credentials) { 
+        return {
+            data: encrypted_credentials.data,
+            hash: encrypted_credentials.hash,
+            secret: encrypted_credentials.secret
+        }
+    }
+
+    async buildEncryptedPassportElement(encrypted_passport_element) {
+        let _element = {
+            type: passport_element_type_mirror_table.get(encrypted_passport_element.type['@type']),
+            hash: encrypted_passport_element.hash
+        }
+        if (encrypted_passport_element.data) {
+            _element.data = encrypted_passport_element.data
+        }
+        if (encrypted_passport_element.front_side) {
+            _element.front_side = await this.buildPassportFile(encrypted_passport_element.front_side)
+        }
+        if (encrypted_passport_element.reverse_side) {
+            _element.reverse_side = await this.buildPassportFile(encrypted_passport_element.reverse_side)
+        }
+        if (encrypted_passport_element.selfie) {
+            _element.selfie = await this.buildPassportFile(encrypted_passport_element.selfie)
+        }
+        if (Array.isArray(encrypted_passport_element.translation)) {
+            _element.translation = await Promise.all(encrypted_passport_element.translation.map(n => this.buildPassportFile(n)))
+        }
+        if (Array.isArray(encrypted_passport_element.files)) {
+            _element.files = await Promise.all(encrypted_passport_element.files.map(n => this.buildPassportFile(n)))
+        }
+        switch (_element.type) {
+            case 'email':
+                _element.email = encrypted_passport_element.value
+                break
+            case 'phone_number':
+                _element.phone_number = encrypted_passport_element.value
+        }
+        return _element
+    }
+
     async buildFile(file) {
         return {
             file_id: file.remote.id,
@@ -690,6 +775,19 @@ class BotTypeConversion {
             _game.animation = await this.buildAnimation(game.animation)
         }
         return _game
+    }
+
+    async buildGameHighScore(game_high_score) {
+        return {
+            position: game_high_score.position,
+            user: await this.buildUser(await this.client.run('getUser', { user_id: game_high_score.user_id }), false),
+            score: game_high_score.score
+        }
+    }
+
+    async buildGameHighScores(game_high_scores) {
+        let _buf = await Promise.all(game_high_scores.map(n => this.buildGameHighScore(n)))
+        return _buf
     }
 
     async buildInlineQuery(iq) {
@@ -1398,6 +1496,102 @@ class BotTypeConversion {
         }
     }
 
+    async buildTdlibPassportElementError(passport_element_error) {
+        switch (passport_element_error.source) {
+            case 'data': {
+                return {
+                    source: {
+                        '@type': 'inputPassportElementErrorSourceDataField',
+                        field_name: passport_element_error.field_name,
+                        data_hash: passport_element_error.data_hash
+                    },
+                    type: passport_element_type_mirror_table_reversed.get(passport_element_error.type),
+                    message: passport_element_error.message
+                }
+            }
+            case 'front_side': {
+                return {
+                    source: {
+                        '@type': 'inputPassportElementErrorSourceFrontSide',
+                        file_hash: passport_element_error.file_hash
+                    },
+                    type: passport_element_type_mirror_table_reversed.get(passport_element_error.type),
+                    message: passport_element_error.message
+                }
+            }
+            case 'reverse_side': {
+                return {
+                    source: {
+                        '@type': 'inputPassportElementErrorSourceReverseSide',
+                        file_hash: passport_element_error.file_hash
+                    },
+                    type: passport_element_type_mirror_table_reversed.get(passport_element_error.type),
+                    message: passport_element_error.message
+                }
+            }
+            case 'selfie': {
+                return {
+                    source: {
+                        '@type': 'inputPassportElementErrorSourceSelfie',
+                        file_hash: passport_element_error.file_hash
+                    },
+                    type: passport_element_type_mirror_table_reversed.get(passport_element_error.type),
+                    message: passport_element_error.message
+                }
+            }
+            case 'file': {
+                return {
+                    source: {
+                        '@type': 'inputPassportElementErrorSourceFile',
+                        file_hash: passport_element_error.file_hash
+                    },
+                    type: passport_element_type_mirror_table_reversed.get(passport_element_error.type),
+                    message: passport_element_error.message
+                }
+            }
+            case 'files': {
+                return {
+                    source: {
+                        '@type': 'inputPassportElementErrorSourceFiles',
+                        file_hashes: passport_element_error.file_hashes
+                    },
+                    type: passport_element_type_mirror_table_reversed.get(passport_element_error.type),
+                    message: passport_element_error.message
+                }
+            }
+            case 'translation_file': {
+                return {
+                    source: {
+                        '@type': 'inputPassportElementErrorSourceTranslationFile',
+                        file_hash: passport_element_error.file_hash
+                    },
+                    type: passport_element_type_mirror_table_reversed.get(passport_element_error.type),
+                    message: passport_element_error.message
+                }
+            }
+            case 'translation_files': {
+                return {
+                    source: {
+                        '@type': 'inputPassportElementErrorSourceTranslationFiles',
+                        file_hashes: passport_element_error.file_hashes
+                    },
+                    type: passport_element_type_mirror_table_reversed.get(passport_element_error.type),
+                    message: passport_element_error.message
+                }
+            }
+            case 'unspecified': {
+                return {
+                    source: {
+                        '@type': 'inputPassportElementErrorSourceUnspecified',
+                        element_hash: passport_element_error.element_hash
+                    },
+                    type: passport_element_type_mirror_table_reversed.get(passport_element_error.type),
+                    message: passport_element_error.message
+                }
+            }
+        }
+    }
+
     async buildOrderInfo(order_info) {
         let _oi = {
             name: order_info.name,
@@ -1410,11 +1604,23 @@ class BotTypeConversion {
         return _oi
     }
 
-    async buildPhoto(photo) {
-        let _photo = []
-        for (let p of photo.sizes) {
-            _photo.push(await this.buildPhotoSize(p))
+    async buildPassportData(passport_data) {
+        return {
+            data: await Promise.all(passport_data.elements.map(n => this.buildEncryptedPassportElement(n))),
+            credentials: await this.buildEncryptedCredentials(n => this.buildEncryptedCredentials(n))
         }
+    }
+
+    async buildPassportFile(dated_file) {
+        return {
+            file_id: dated_file.file.remote.id,
+            file_size: dated_file.file.size,
+            file_date: dated_file.date
+        }
+    }
+
+    async buildPhoto(photo) {
+        let _photo = await Promise.all(photo.sizes.map(n => this.buildPhotoSize(n)))
         return _photo
     }
 
@@ -1425,6 +1631,25 @@ class BotTypeConversion {
             width: photo_size.width,
             height: photo_size.height,
             file_size: photo_size.photo.size || photo_size.photo.expected_size
+        }
+    }
+
+    async buildPollOptions(poll_options) {
+        return {
+            text: poll_options.text,
+            voter_count: poll_options.voter_count,
+            vote_percentage: poll_options.voter_count
+        }
+    }
+
+    async buildPoll(poll) {
+        let _options = await Promise.all(poll.options.map(n => this.buildPollOptions(n)))
+        return {
+            id: poll.id,
+            question: poll.question,
+            options: _options,
+            total_voter_count: poll.total_voter_count,
+            is_closed: poll.is_closed
         }
     }
 
@@ -1484,14 +1709,22 @@ class BotTypeConversion {
         return _set
     }
 
-    async buildUserProfilePhotos(upps) {
-        let _photos = []
-        for (let p of upps.photos) {
-            _photos.push(await this.buildPhoto(p))
+    async buildUserProfilePhoto(upp) {
+        let _photos = await Promise.all(upp.sizes.map(n => this.buildPhotoSize(n)))
+        return {
+            id: upp.id,
+            added_date: upp.added_date,
+            sizes: _photos
         }
+    }
+
+    async buildUserProfilePhotos(upps) {
+        let _photos = await Promise.all(upps.photos.map(n => this.buildPhoto(n)))
+        let extended = await Promise.all(upps.photos.map(n => this.buildUserProfilePhoto(n)))
         return {
             total_count: upps.total_count,
-            photos: _photos
+            photos: _photos,
+            extended
         }
     }
 

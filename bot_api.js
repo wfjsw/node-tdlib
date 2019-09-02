@@ -49,6 +49,7 @@ class Bot extends TdClientActor {
         if (!api_id || !api_hash) throw new Error('missing api_id, api_hash')
         if (identifier === null) identifier = `bot${bot_token.split(':')[0]}`
         const ignore_file_names = 'ignore_file_names' in options ? options.ignore_file_names : true
+        // @ts-ignore
         super(Object.assign({
             api_id,
             api_hash,
@@ -63,6 +64,7 @@ class Bot extends TdClientActor {
         this.bot_id = parseInt(bot_token.split(':')[0])
         this._identifier = identifier
         if (options.encrypt_callback_query) {
+            // @ts-ignore
             this._encrypt_callback_query = crypto.scryptSync(bot_token, this._encryption_key, 32)
         } else {
             this._encrypt_callback_query = false
@@ -116,17 +118,20 @@ class Bot extends TdClientActor {
         this.on('__updateNewChosenInlineResult', (update) => {
             this._processIncomingChosenInlineResult.call(self, update)
         })
-        setInterval(() => {
-            if (!self._closed) {
-                return this.run('setOption', {
-                    name: 'online',
-                    value: {
-                        '@type': 'optionValueBoolean',
-                        value: true
-                    }
-                })
-            }
-        }, 30000)
+        this.on('__updatePoll', (/** @type {TdTypes.updateNewMessage} */ update) => {
+            this._processIncomingPoll.call(self, update.message)
+        })
+        // setInterval(() => {
+        //     if (!self._closed) {
+        //         return this.run('setOption', {
+        //             name: 'online',
+        //             value: {
+        //                 '@type': 'optionValueBoolean',
+        //                 value: true
+        //             }
+        //         })
+        //     }
+        // }, 30000)
         this.once('ready', () => this.ready = true)
         this.once('ready', () => {
             this.run('setOption', {
@@ -451,7 +456,7 @@ class Bot extends TdClientActor {
                 }
             }
             let ret = await this.run('editMessageLiveLocation', _opt)
-            return _util.buildMessage(ret)
+            return this.conversion.buildMessage(ret)
         } else if (options.inline_message_id) {
             let _opt = {
                 inline_message_id: options.inline_message_id,
@@ -472,8 +477,8 @@ class Bot extends TdClientActor {
     async sendVenue(chat_id, lat, long, title, address, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         let media = {
+            '@type': 'inputMessageVenue',
             venue: {
-                '@type': 'inputMessageVenue',
                 location: {
                     '@type': 'location',
                     latitude: lat,
@@ -491,8 +496,8 @@ class Bot extends TdClientActor {
     async sendContact(chat_id, phone_number, first_name, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         let media = {
+            '@type': 'inputMessageContact',
             contact: {
-                '@type': 'inputMessageContact',
                 phone_number,
                 first_name,
                 last_name: options.last_name || ''
@@ -500,6 +505,48 @@ class Bot extends TdClientActor {
         }
         if (options.vcard) media.contact.vcard = options.vcard
         return this._sendMessage(chat_id, media, options)
+    }
+
+    async sendPoll(chat_id, question, poll_options, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        if (chat_id > 0) throw new Error('A native poll can\'t be sent to a private chat. ')
+        let media = {
+            '@type': 'inputMessagePoll',
+            question,
+            options: poll_options
+        }
+        return this._sendMessage(chat_id, media, options)
+    }
+
+    async stopPoll(chat_id, message_id, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        chat_id = await this._checkChatId(chat_id)
+        await this._initChatIfNeeded(chat_id)
+        let orig_msg = await this.run('getMessage', {
+            chat_id: chat_id,
+            message_id: _util.get_tdlib_message_id(message_id)
+        })
+        if (orig_msg.content['@type'] != 'messagePoll') throw new Error('Target message is not a poll.')
+        let _opt = {
+            chat_id: chat_id,
+            message_id: _util.get_tdlib_message_id(message_id)
+        }
+        if (options.reply_markup) {
+            _opt.reply_markup = this._parseReplyMarkup(options.reply_markup)
+        } else if (options.preserve_reply_markup) {
+            if (orig_msg.reply_markup) {
+                _opt.reply_markup = orig_msg.reply_markup
+            }
+        }
+        let ret = await this.run('stopPoll', _opt)
+        if (ret['@type'] == 'ok') {
+            let fin_msg = await this.run('getMessage', {
+                chat_id: chat_id,
+                message_id: _util.get_tdlib_message_id(message_id)
+            })
+            return this.conversion.buildPoll(fin_msg.content.poll)
+        }
+        else throw ret
     }
 
     async sendChatAction(chat_id, action) {
@@ -683,15 +730,14 @@ class Bot extends TdClientActor {
     async pinChatMessage(chat_id, message_id, options = {}) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
-        if (chat_id > -Math.pow(10, 12)) throw new Error('Not a supergroup or channel.')
         await this._initChatIfNeeded(chat_id)
         message_id = _util.get_tdlib_message_id(message_id)
         let opt = {
-            supergroup_id: Math.abs(chat_id) - Math.pow(10, 12),
+            chat_id,
             message_id,
             disable_notification: !!options.disable_notification
         }
-        let ret = await this.run('pinSupergroupMessage', opt)
+        let ret = await this.run('pinChatMessage', opt)
         if (ret['@type'] == 'ok') return true
         else throw ret
     }
@@ -699,12 +745,11 @@ class Bot extends TdClientActor {
     async unpinChatMessage(chat_id) {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
-        if (chat_id > -Math.pow(10, 12)) throw new Error('Not a supergroup or channel.')
         await this._initChatIfNeeded(chat_id)
         let opt = {
-            supergroup_id: Math.abs(chat_id) - Math.pow(10, 12),
+            chat_id
         }
-        let ret = await this.run('uninSupergroupMessage', opt)
+        let ret = await this.run('unpinChatMessage', opt)
         if (ret['@type'] == 'ok') return true
         else throw ret
     }
@@ -713,15 +758,10 @@ class Bot extends TdClientActor {
         if (!this.ready) throw new Error('Not ready.')
         chat_id = await this._checkChatId(chat_id)
         await this._initChatIfNeeded(chat_id)
-        let me = await this.run('getMe', {})
         let opt = {
-            chat_id,
-            user_id: me.id,
-            status: {
-                '@type': 'chatMemberStatusLeft'
-            }
+            chat_id
         }
-        let ret = await this.run('setChatMemberStatus', opt)
+        let ret = await this.run('leaveChat', opt)
         if (ret['@type'] == 'ok') return true
         else throw ret
     }
@@ -1245,10 +1285,9 @@ class Bot extends TdClientActor {
     }
 
     async getFile(file_id, priority = 1) {
-        let self = this
         let _id = file_id
         if (isNaN(file_id)) {
-            let _file = await self.run('getRemoteFile', {
+            let _file = await this.run('getRemoteFile', {
                 remote_file_id: _id
             })
             _id = _file.id
@@ -1258,16 +1297,6 @@ class Bot extends TdClientActor {
                     file_size: _file.size,
                     file_path: _file.local.path
                 }
-            } else if (_file.local.is_downloading_active) {
-                return new Promise((rs) => {
-                    self.once(`_fileDownloaded:${_id}`, file => {
-                        return rs({
-                            file_id: file.id,
-                            file_size: file.size,
-                            file_path: file.local.path
-                        })
-                    })
-                })
             }
         } else {
             _id = parseInt(_id)
@@ -1280,33 +1309,22 @@ class Bot extends TdClientActor {
                     file_size: _file.size,
                     file_path: _file.local.path
                 }
-            } else if (_file.local.is_downloading_active) {
-                return new Promise((rs) => {
-                    self.once(`_fileDownloaded:${_id}`, file => {
-                        return rs({
-                            file_id: file.id,
-                            file_size: file.size,
-                            file_path: file.local.path
-                        })
-                    })
-                })
             }
         }
         if (priority < 1) priority = 1
         if (priority > 32) priority = 32
-        return new Promise((rs, rj) => {
-            self.once(`_fileDownloaded:${_id}`, file => {
-                return rs({
-                    file_id: file.id,
-                    file_size: file.size,
-                    file_path: file.local.path
-                })
-            })
-            self.run('downloadFile', {
-                file_id: _id,
-                priority
-            }).catch(rj)
+        let _file = await this.run('downloadFile', {
+            file_id: _id,
+            priority,
+            offset: 0,
+            limit: 0,
+            synchronous: true
         })
+        return {
+            file_id: _file.id,
+            file_size: _file.size,
+            file_path: _file.local.path
+        }
     }
 
     async deleteFile(file_id) {
@@ -1322,6 +1340,95 @@ class Bot extends TdClientActor {
         let ret = await this.run('deleteFile', { file_id: _id })
         if (ret['@type'] == 'ok')
             return true
+        else throw ret
+    }
+
+    async sendGame(chat_id, game_short_name, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        let me = await this.getMe()
+        let media = {
+            '@type': 'inputMessageGame',
+            game_short_name,
+            bot_user_id: me.id
+        }
+        if (options.bot_user_id) media.bot_user_id = options.bot_user_id
+        return this._sendMessage(chat_id, media, options)
+    }
+
+    async setGameScore(user_id, score, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        if (options.chat_id && options.message_id) {
+            options.chat_id = await this._checkChatId(options.chat_id)
+            await this._initChatIfNeeded(options.chat_id)
+            let orig_msg = await this.run('getMessage', {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id)
+            })
+            if (orig_msg.content['@type'] != 'messageGame') throw new Error('Target message is not a game.')
+            let _opt = {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id),
+                edit_message: !options.disable_edit_message,
+                user_id, 
+                score,
+                force: !!options.force
+            }
+            let ret = await this.run('setGameScore', _opt)
+            return this.conversion.buildMessage(ret)
+        } else if (options.inline_message_id) {
+            let _opt = {
+                inline_message_id: options.inline_message_id,
+                edit_message: !options.disable_edit_message,
+                user_id,
+                score,
+                force: !!options.force
+            }
+            let ret = await this.run('setInlineGameScore', _opt)
+            if (ret['@type'] == 'ok')
+                return true
+            else throw ret
+        } else {
+            throw new Error('Please specify chat_id and message_id or inline_message_id.')
+        }
+    }
+
+    async getGameHighScores(user_id, options = {}) {
+        if (!this.ready) throw new Error('Not ready.')
+        if (options.chat_id && options.message_id) {
+            options.chat_id = await this._checkChatId(options.chat_id)
+            await this._initChatIfNeeded(options.chat_id)
+            let orig_msg = await this.run('getMessage', {
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id)
+            })
+            if (orig_msg.content['@type'] != 'messageGame') throw new Error('Target message is not a game.')
+            let _opt = {
+                user_id,
+                chat_id: options.chat_id,
+                message_id: _util.get_tdlib_message_id(options.message_id)
+            }
+            let ret = await this.run('getGameHighScores', _opt)
+            return this.conversion.buildGameHighScores(ret)
+        } else if (options.inline_message_id) {
+            let _opt = {
+                user_id,
+                inline_message_id: options.inline_message_id
+            }
+            let ret = await this.run('getInlineGameHighScores', _opt)
+            return this.conversion.buildGameHighScores(ret)
+        } else {
+            throw new Error('Please specify chat_id and message_id or inline_message_id.')
+        }
+    }
+
+    async setPassportDataErrors(user_id, errors = []) {
+        if (!this.ready) throw new Error('Not ready.')
+        let _opt = {
+            user_id,
+            errors: errors.map(n => this.conversion.buildTdlibPassportElementError(n))
+        }
+        let ret = await this.run('setPassportDataErrors', _opt)
+        if (ret['@type'] == 'ok') return true
         else throw ret
     }
 
@@ -1817,6 +1924,16 @@ class Bot extends TdClientActor {
             evt.location = await this.conversion.buildLocation(update.user_location)
         }
         return this.emit('chosen_inline_result', evt)
+    }
+
+    /**
+     * 
+     * @protected
+     * @param {*} poll 
+     */
+    async _processIncomingPoll(poll) {
+        const _poll = await this.conversion.buildPoll(poll)
+        return this.emit('poll', _poll)
     }
 
     /**
