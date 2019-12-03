@@ -207,14 +207,9 @@ class TdClientActor extends EventEmitter {
      * @fires TdClientActor#destroy
      */
     destroy() {
-        return new Promise((rs, rj) => {
-            if (this._closed) rj(new Error('Already closed.'))
-            this._closed = true
-            this.once('closed', () => {
-                rs()
-            })
-            setImmediate(lib.td_client_destroy, this._instance_id)
-        })
+        if (this._closed) throw new Error('Already closed.');
+        this._closed = true;
+        setImmediate(lib.td_client_destroy, this._instance_id)
     }
 
     /**
