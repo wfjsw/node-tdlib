@@ -38,7 +38,7 @@ const { inspect } = require('util')
 
 class TdClientActor extends EventEmitter {
     /**
-     * @param {TdClientActorOptions} options 
+     * @param {TdClientActorOptions} options
      */
     constructor(options) {
         // @ts-ignore
@@ -207,27 +207,22 @@ class TdClientActor extends EventEmitter {
      * @fires TdClientActor#destroy
      */
     destroy() {
-        return new Promise((rs, rj) => {
-            if (this._closed) rj(new Error('Already closed.'))
-            this._closed = true
-            this.once('closed', () => {
-                rs()
-            })
-            setImmediate(lib.td_client_destroy, this._instance_id)
-        })
+        if (this._closed) throw new Error('Already closed.');
+        this._closed = true;
+        setImmediate(lib.td_client_destroy, this._instance_id)
     }
 
     /**
      * Poll for updates
      * @private
-     * @param {number} timeout 
-     * @param {boolean} is_recursive 
+     * @param {number} timeout
+     * @param {boolean} is_recursive
      */
     _pollUpdates(timeout = 5, is_recursive = false) {
         if (is_recursive && this._closed) {
             console.log('Client closed. Stopping recursive update.')
         }
-        if (this._closed) throw new Error('is closed')
+        if (this._closed) {return;}
         if (this._options.polling_mode === 'async') {
             lib.td_client_receive_async(this._instance_id, timeout, (err, res) => {
                 if (err) {
@@ -407,7 +402,7 @@ class TdClientActor extends EventEmitter {
 
     _isCacheableUpdate(key) {
         return this._options.use_cache && [
-            'updateNewChat', 
+            'updateNewChat',
             'updateUser',
             'updateBasicGroup',
             'updateSupergroup',
@@ -507,7 +502,7 @@ class TdClientActor extends EventEmitter {
             cache.reply_markup_message_id = data.reply_markup_message_id
         } else if (name === 'updateChatDraftMessage') {
             const cache = this._cache.get(`chat:${data.chat_id}`)
-            cache.draft_message = data.draft_message        
+            cache.draft_message = data.draft_message
             cache.order = data.order
         } else if (name === 'updateChatNotificationSettings') {
             const cache = this._cache.get(`chat:${data.chat_id}`)
