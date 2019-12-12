@@ -1,7 +1,7 @@
 // @ts-nocheck
 const fs = require('fs')
-const {spawn, execSync} = require('child_process');
-const {tdlib} = require('./package.json')
+const { spawn, execSync } = require('child_process')
+const { tdlib } = require('./package.json')
 
 console.log('Downloading tdlib...')
 
