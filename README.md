@@ -17,7 +17,7 @@ List of prebuilt binary is available [here](https://github.com/wfjsw/node-tdlib/
 ### Compile on your own
 
 ```
-git clone https://github.com/wfjsw/node-tdlib.git --recurse-submodules
+git clone https://github.com/wfjsw/node-tdlib.git
 cd node-tdlib
 npm i
 npm run compile
