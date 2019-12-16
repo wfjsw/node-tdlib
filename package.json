@@ -21,8 +21,8 @@
     "node": ">=10.0.0"
   },
   "tdlib": {
-    "version": "1.4.0",
-    "commit": "21dee3b",
+    "version": "1.5.0",
+    "commit": "b6a483d",
     "variant": "napi",
     "debug": false
   },
