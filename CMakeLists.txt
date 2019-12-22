@@ -6,6 +6,10 @@ INCLUDE(CheckIncludeFileCXX)
 #set(CMAKE_C_COMPILER clang)
 #set(CMAKE_CXX_COMPILER clang++)
 
+if(APPLE)
+    set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)
+endif(APPLE)
+
 project(NodeTdlib VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
